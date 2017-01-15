@@ -49,7 +49,7 @@ dmp::Program::Program(int width, int height, const char * title)
 
   mCameraState[HORIZONTAL] = 0.0f;
   mCameraState[VERTICAL] = 0.0f;
-  mCameraState[DISTANCE] = 600.0f;
+  mCameraState[DISTANCE] = 5.0f;
 
   auto cameraFn = [&mCameraState=mCameraState] (glm::mat4 & M, float)
     {
@@ -82,7 +82,6 @@ dmp::Program::Program(int width, int height, const char * title)
       return true;
     };
 
-
   mScene.build(cameraFn);
 
   mWindow.keyFn = [&mCameraState=mCameraState](GLFWwindow * w,
@@ -91,9 +90,9 @@ dmp::Program::Program(int width, int height, const char * title)
                                                int action,
                                                int mods)
     {
-      static const float minZoom = 100.0f;
-      static const float maxZoom = 800.0f;
-      static const float zoomInc = 20.0f;
+      static const float minZoom = 1.0f;
+      static const float maxZoom = 100.0f;
+      static const float zoomInc = 1.0f;
       static const float minElev = -(glm::half_pi<float>() - 0.1f);
       static const float maxElev = glm::half_pi<float>() - 0.1f;
       static const float minHorz = -std::numeric_limits<float>::infinity();

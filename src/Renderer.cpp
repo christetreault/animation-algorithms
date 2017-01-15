@@ -96,7 +96,8 @@ void dmp::Renderer::render(const Scene & scene, const Timer & timer)
 
   expectNoErrors("Clear prior to render");
 
-  size_t materialIndex = scene.objects[0].materialIndex();
+  expect("there should be objects to draw", !scene.objects.empty());
+  size_t materialIndex = scene.objects[0]->materialIndex();
 
   // Pass constants
 
@@ -152,15 +153,15 @@ void dmp::Renderer::render(const Scene & scene, const Timer & timer)
 
   for (size_t i = 0; i < scene.objects.size(); ++i)
     {
-      if (scene.objects[i].materialIndex() != materialIndex)
+      if (scene.objects[i]->materialIndex() != materialIndex)
         {
-          materialIndex = scene.objects[i].materialIndex();
+          materialIndex = scene.objects[i]->materialIndex();
           scene.materialConstants->bind(2, materialIndex);
         }
 
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D,
-                    scene.textures[scene.objects[i].textureIndex()]);
+                    scene.textures[scene.objects[i]->textureIndex()]);
       glUniform1i(glGetUniformLocation(mShaderProg, "tex"),
                   texUnitAsInt(GL_TEXTURE0));
 
@@ -169,8 +170,8 @@ void dmp::Renderer::render(const Scene & scene, const Timer & timer)
 
       expectNoErrors("Set uniforms");
 
-      scene.objects[i].bind();
-      scene.objects[i].draw();
+      scene.objects[i]->bind();
+      scene.objects[i]->draw();
     }
 
 }

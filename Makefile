@@ -2,7 +2,7 @@
 .PHONY := all build rebuild clean debug release
 OS_NAME := $(shell uname)
 
-PROG_NAME = sandbox
+PROG_NAME = skeleton
 SRC_DIR = src
 RES_DIR = res
 SHADER_DIR = $(RES_DIR)/shaders
@@ -21,7 +21,7 @@ endif
 LIB_DEFINES = $(GLM_DEFINES)
 
 OBJ_FILES = main.o Window.o Renderer.o Shader.o Program.o Timer.o Object.o \
-Scene.o UniformBuffer.o Graph.o Pass.o Texture.o Camera.o Skybox.o
+Scene.o UniformBuffer.o Graph.o Pass.o Texture.o Camera.o Skybox.o Skeleton.o
 
 PKG_CONFIG_LIBS = glfw3 glew assimp
 MANUAL_LIBS =
@@ -94,6 +94,9 @@ Camera.o : $(SRC_DIR)/Scene/Camera.cpp $(SRC_DIR)/Scene/Camera.hpp
 
 Skybox.o : $(SRC_DIR)/Scene/Skybox.cpp $(SRC_DIR)/Scene/Skybox.hpp
 	   $(call compile,Scene/Skybox.cpp)
+
+Skeleton.o : $(SRC_DIR)/Scene/Skeleton.cpp $(SRC_DIR)/Scene/Skeleton.hpp
+	     $(call compile,Scene/Skeleton.cpp)
 
 rebuild : clean build
 

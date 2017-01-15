@@ -46,17 +46,21 @@ namespace dmp
   {
   public:
     Container() = delete;
-    Container(Object & obj) : mValue(obj) {}
+    Container(Object obj) : mValue(obj) {}
     Container(CameraPos & cam) : mValue(cam) {}
     Container(CameraFocus & cam) : mValue(cam) {}
     Container(Light & lit) : mValue(lit) {}
-
+    boost::variant<Object, CameraPos &,
+                   CameraFocus &, Light &> mValue;
   private:
     void updateImpl(float deltaT, glm::mat4 M, bool dirty) override;
-    boost::variant<Object &, CameraPos &, CameraFocus &, Light &> mValue;
+
   };
 
-  static auto noTransform = [] (glm::mat4 &, float) {return false;};
+  static auto noTransform = [] (glm::mat4 &, float)
+  {
+    return false;
+  };
 
   class Transform : public Node
   {
@@ -67,10 +71,10 @@ namespace dmp
     glm::mat4 mTransform;
     std::unique_ptr<Node> mChild = nullptr;
 
-    Container * insert(Object & o);
-    Container * insert(Light & l);
-    Container * insert(CameraPos & c);
-    Container * insert(CameraFocus & c);
+    Object * insert(Object o);
+    Light * insert(Light & l);
+    CameraPos * insert(CameraPos & c);
+    CameraFocus * insert(CameraFocus & c);
     Node * insert(std::unique_ptr<Node> & n);
     Transform * insert(std::unique_ptr<Transform> & t);
     Branch * insert(std::unique_ptr<Branch> & b);
@@ -86,8 +90,10 @@ namespace dmp
     {
       // If outDirty == false, then it must be the case that mTransform is not
       // changed.
-      bool outDirty = mUpdateFn(mTransform, deltaT) | inDirty;
+      expect("updateFn not null", mUpdateFn);
+      bool outDirty = mUpdateFn(mTransform, deltaT) || inDirty;
       glm::mat4 outM = M * mTransform;
+
       if (mChild) mChild->update(deltaT, outM, outDirty);
     }
   };
@@ -101,10 +107,10 @@ namespace dmp
     Transform * insert(std::unique_ptr<Transform> & t);
     Branch * insert(std::unique_ptr<Branch> & b);
     Container * insert(std::unique_ptr<Container> & c);
-    Container * insert(Object & o);
-    Container * insert(Light & l);
-    Container * insert(CameraPos & c);
-    Container * insert(CameraFocus & c);
+    Object * insert(Object o);
+    Light * insert(Light & l);
+    CameraPos * insert(CameraPos & c);
+    CameraFocus * insert(CameraFocus & c);
 
     Transform * transform();
     Transform * transform(glm::mat4);
@@ -115,7 +121,8 @@ namespace dmp
     {
       for (auto & curr : mChildren)
         {
-          curr->update(deltaT, M, dirty);
+          expect("branch not null", curr);
+          if (curr) curr->update(deltaT, M, dirty);
         }
     }
   };

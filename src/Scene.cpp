@@ -111,16 +111,26 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn)
 {
   graph = std::make_unique<Branch>();
 
-  std::vector<ObjectVertex> verts(0);
-  std::vector<GLuint> idxs(0);
+  //loadTestModel(verts, idxs);
 
-  loadTestModel(verts, idxs);
+  skeleton = std::make_unique<Skeleton>("dragon.skel");
 
-  objects.emplace_back(verts, idxs, GL_TRIANGLES, 0, 0);
+  skeleton->insertInScene(graph.get(),
+                          objects,
+                          0, 0);
+  // Object o(Cube, glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f),
+  //          glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+  //          glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+  //          0, 0);
+  // objects.push_back(graph->insert(o));
+  // o = Object(Cube, glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f),
+  //            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+  //            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+  //            1, 0);
+  // objects.push_back(graph->insert(o));
+  Object::sortByMaterial(objects);
 
-  sortByMaterial(objects);
-
-  materials.push_back( // Pearl = 0
+  materials.push_back( // Ruby = 0
     {
       {
         0.1745f, 0.01175f, 0.01175f, 1.0f
@@ -133,7 +143,7 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn)
       },
       0.6f
     });
-  materials.push_back( // Ruby = 1
+  materials.push_back( // Pearl = 1
     {
       {
         0.25f, 0.20725f, 0.20725f, 1.0f
@@ -170,15 +180,6 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn)
       glm::mat4()
     });
 
-  auto rotateY = graph->transform([](glm::mat4 & M, float deltaT)
-    {
-      M = glm::rotate(M,
-                      deltaT / 2.0f,
-                      glm::vec3(0.0f, 1.0f, 0.0f));
-
-      return true;
-    });
-
   auto antiY = graph->transform([](glm::mat4 & M, float deltaT)
     {
       M = glm::rotate(M,
@@ -189,7 +190,6 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn)
     });
   auto cam = graph->transform(cameraFn);
 
-  rotateY->insert(objects[0]);
   antiY->insert(lights[0]);
   graph->insert(lights[1]);
 
@@ -218,10 +218,10 @@ void dmp::Scene::update(float deltaT)
 
   for (size_t i = 0; i < objects.size(); ++i)
     {
-      if (objects[i].isDirty())
+      if (objects[i]->isDirty())
         {
-          objectConstants->update(i, objects[i].getObjectConstants());
-          objects[i].setClean();
+          objectConstants->update(i, objects[i]->getObjectConstants());
+          objects[i]->setClean();
         }
     }
 
@@ -235,7 +235,7 @@ void dmp::Scene::free()
 {
   for (auto & curr : objects)
     {
-      curr.freeObject();
+      curr->freeObject();
     }
 
   for (auto & curr : textures)

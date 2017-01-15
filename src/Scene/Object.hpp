@@ -12,6 +12,11 @@
 
 namespace dmp
 {
+  enum Shape
+    {
+      Cube
+    };
+
   struct ObjectVertex
   {
     glm::vec4 position;
@@ -36,10 +41,8 @@ namespace dmp
   {
   public:
     Object() = delete;
-    Object(const Object &) = delete;
-    Object & operator=(const Object &) = delete;
-    Object(Object &&) = default;
-    Object & operator=(Object &&) = default;
+    Object(const Object &) = default;
+    Object & operator=(const Object &) = default;
 
     ~Object() {}
 
@@ -61,6 +64,10 @@ namespace dmp
            GLenum format,
            size_t matIdx,
            size_t texIdx);
+
+    Object(Shape shape, glm::vec4 min,
+           glm::vec4 max, glm::vec4 origin,
+           size_t matIdx, size_t texIdx);
 
     bool isDirty() const {return mDirty;}
     void setClean() {mDirty = false;}
@@ -113,6 +120,8 @@ namespace dmp
     size_t materialIndex() const {return mMaterialIdx;}
     size_t textureIndex() const {return mTextureIdx;}
 
+    static void sortByMaterial(std::vector<Object *> & objs);
+
   private:
     void initObject(std::vector<ObjectVertex> * verts,
                     std::vector<GLuint> * idxs);
@@ -130,11 +139,7 @@ namespace dmp
     size_t mTextureIdx;
 
     GLsizei drawCount;
-
-    friend void sortByMaterial(std::vector<Object> & objs);
   };
-
-  void sortByMaterial(std::vector<Object> & objs);
 }
 
 #endif

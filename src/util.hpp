@@ -9,6 +9,7 @@
 #include <limits>
 #include <GL/glew.h>
 #include <limits>
+#include <math.h>
 
 // Exectue a statement IFF built in release mode (NDEBUG is definend)
 // define ifRelease

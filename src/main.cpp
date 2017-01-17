@@ -18,12 +18,15 @@ static void libsFinalize()
   glfwTerminate();
 }
 
-int main(int, char **)
+int main(int argc, char ** argv)
 {
   using namespace dmp;
 
   ifDebug(std::cerr << "Built in debug mode..." << std::endl);
   ifRelease(std::cerr << "Built in release mode..." << std::endl);
+
+  std::string file = "test.skel";
+  if (argc > 1) file = argv[1];
 
   int exitCode = EXIT_SUCCESS;
 
@@ -34,7 +37,7 @@ int main(int, char **)
       int width = 1280;
       int height = 720;
       Program p(width, height, "Petting a cat's tummy is dangerous,"
-                "but nothing ventured nothing gained");
+                "but nothing ventured nothing gained", file.c_str());
 
       exitCode = p.run();
     }

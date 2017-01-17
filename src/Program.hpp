@@ -20,7 +20,8 @@ namespace dmp
     Program(Program &&) = default;
     Program & operator=(Program &&) = default;
 
-    Program(int width, int height, const char * title);
+    Program(int width, int height,
+            const char * title, const char * file);
     int run();
   private:
     Window mWindow;

@@ -22,7 +22,8 @@ static void errorCb(int error, const char * description)
             << std::endl;
 }
 
-dmp::Program::Program(int width, int height, const char * title)
+dmp::Program::Program(int width, int height,
+                      const char * title, const char * file)
   : mWindow(width, height, title),
     mRenderer((GLsizei) mWindow.getFramebufferWidth(),
               (GLsizei) mWindow.getFramebufferHeight(),
@@ -82,7 +83,7 @@ dmp::Program::Program(int width, int height, const char * title)
       return true;
     };
 
-  mScene.build(cameraFn);
+  mScene.build(cameraFn, file);
 
   mWindow.keyFn = [&mCameraState=mCameraState](GLFWwindow * w,
                                                int key,

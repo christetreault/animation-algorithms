@@ -27,7 +27,8 @@ namespace dmp
     std::unique_ptr<Skybox> skybox;
     std::unique_ptr<Skeleton> skeleton;
 
-    void build(std::function<bool(glm::mat4 &, float)> cameraFn);
+    void build(std::function<bool(glm::mat4 &, float)> cameraFn,
+               const char * file);
     void update(float deltaT);
     void free();
   };

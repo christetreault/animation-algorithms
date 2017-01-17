@@ -107,13 +107,14 @@ static void loadTestModel(std::vector<ObjectVertex> & verts,
   std::cerr << "done!" << std::endl;
 }
 
-void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn)
+void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
+                       const char * name)
 {
   graph = std::make_unique<Branch>();
 
   //loadTestModel(verts, idxs);
 
-  skeleton = std::make_unique<Skeleton>("dragon.skel");
+  skeleton = std::make_unique<Skeleton>(name);
 
   skeleton->insertInScene(graph.get(),
                           objects,

@@ -1,7 +1,7 @@
 balljoint root {
           offset 0 0 0
-          boxmin -0.5 -0.5 -0.5
-          boxmax 0.5 0.5 0.5
+          boxmin -0.5 -0.45 -0.5
+          boxmax 0.5 0.45 0.5
           balljoint shoulders {
                     offset 0 0 0.5
                     boxmin -0.45 -0.5 0
@@ -11,16 +11,16 @@ balljoint root {
                               boxmax 0.1 0.1 0.2
                               offset 0 0 1
                               balljoint head {
-                                        boxmin -0.5 -0.5 0
-                                        boxmax 0.5 0.5 1
+                                        boxmin -0.4 -0.4 0
+                                        boxmax 0.4 0.4 0.8
                                         offset 0 0 0.2
                                         balljoint leftEar {
-                                                  offset 0.45 0.7 0.5
+                                                  offset 0.35 0.6 0.4
                                                   boxmin -0.05 -0.2 -0.1
                                                   boxmax 0.05 0.2 0.1
                                         }
                                         balljoint rightEar {
-                                                  offset -0.45 0.7 0.5
+                                                  offset -0.35 0.6 0.4
                                                   boxmin -0.05 -0.2 -0.1
                                                   boxmax 0.05 0.2 0.1
                                         }
@@ -33,12 +33,17 @@ balljoint root {
                               boxmax 0.1 0.25 0.3
                               balljoint leftForeleg {
                                         offset 0 -1 0
-                                        boxmin -0.1 -1 -0.1
+                                        boxmin -0.1 -0.8 -0.1
                                         boxmax 0.1 0 0.1
-                                        balljoint leftHand {
-                                                  offset 0 -1 0
-                                                  boxmin -0.15 -0.3 -0.1
-                                                  boxmax 0.15 0 0.1
+                                        balljoint leftLittleJointThing {
+                                                offset 0 -0.8 0
+                                                boxmin -0.1 -0.2 -0.1
+                                                boxmax 0.1 0 0.1
+                                                balljoint leftHand {
+                                                          offset 0 -0.2 0
+                                                          boxmin -0.15 -0.3 -0.1
+                                                          boxmax 0.15 0 0.1
+                                                          }
                                         }
                               }
 
@@ -49,13 +54,18 @@ balljoint root {
                               boxmax 0.1 0.25 0.3
                               balljoint rightForeleg {
                                         offset 0 -1 0
-                                        boxmin -0.1 -1 -0.1
+                                        boxmin -0.1 -0.8 -0.1
                                         boxmax 0.1 0 0.1
-                                        balljoint rightHand {
-                                                  offset 0 -1 0
-                                                  boxmin -0.15 -0.3 -0.1
-                                                  boxmax 0.15 0 0.1
-                                        }
+                                        balljoint rightLittleJointThing {
+                                                offset 0 -0.8 0
+                                                boxmin -0.1 -0.2 -0.1
+                                                boxmax 0.1 0 0.1
+                                                balljoint rightHand {
+                                                          offset 0 -0.2 0
+                                                          boxmin -0.15 -0.3 -0.1
+                                                          boxmax 0.15 0 0.1
+                                                          }
+                                                }
                               }
 
                     }

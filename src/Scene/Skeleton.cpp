@@ -20,7 +20,7 @@ static void parseFloatTriple(boost::tokenizer<boost::char_separator<char>>::iter
   z = stof(*iter);
   ++iter;
   expect("Parse error: garbage trailing " + prefix,
-         iter == end);
+         iter == end || (*iter)[0] == '#');
 }
 
 static void parseFloatMinMax(boost::tokenizer<boost::char_separator<char>>::iterator & iter,
@@ -34,7 +34,7 @@ static void parseFloatMinMax(boost::tokenizer<boost::char_separator<char>>::iter
   max = stof(*iter);
   ++iter;
   expect("Parse error: garbage trailing " + prefix,
-         iter == end);
+         iter == end || (*iter)[0] == '#');
 }
 
 std::function<bool(glm::mat4 &, float)> dmp::Skeleton::makeXformFn(dmp::Balljoint * bj)
@@ -87,6 +87,7 @@ std::unique_ptr<dmp::Balljoint> dmp::Skeleton::parse(std::string currName,
           auto tend = tokens.end();
 
           if (iter == tokens.end()) continue;
+          else if ((*iter)[0] == '#') continue;
           else if (*iter == "}") break;
           else if (*iter == "offset")
             {

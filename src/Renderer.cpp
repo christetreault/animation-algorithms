@@ -62,7 +62,7 @@ void dmp::Renderer::initRenderer()
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
 
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
   glEnable(GL_PROGRAM_POINT_SIZE);
 
   expectNoErrors("init renderer");

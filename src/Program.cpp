@@ -85,11 +85,12 @@ dmp::Program::Program(int width, int height,
 
   mScene.build(cameraFn, file);
 
-  mWindow.keyFn = [&mCameraState=mCameraState](GLFWwindow * w,
-                                               int key,
-                                               int scancode,
-                                               int action,
-                                               int mods)
+  mWindow.keyFn = [&mCameraState=mCameraState,
+                   &mDrawWireframe=mDrawWireframe](GLFWwindow * w,
+                                                   int key,
+                                                   int scancode,
+                                                   int action,
+                                                   int mods)
     {
       static const float minZoom = 1.0f;
       static const float maxZoom = 100.0f;
@@ -143,6 +144,10 @@ dmp::Program::Program(int width, int height,
                              minZoom,
                              maxZoom);
               break;
+            case GLFW_KEY_W:
+              mDrawWireframe = !mDrawWireframe;
+              if (mDrawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+              else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
         }
     };

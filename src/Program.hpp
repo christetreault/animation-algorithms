@@ -24,6 +24,8 @@ namespace dmp
             const char * title, const char * file);
     int run();
   private:
+    bool mDrawWireframe = false;
+
     Window mWindow;
     Renderer mRenderer;
     Timer mTimer;

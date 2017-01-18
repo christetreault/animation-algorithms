@@ -1,0 +1,138 @@
+balljoint root {
+          offset 0 0 0
+          boxmin -0.5 -0.5 -0.5
+          boxmax 0.5 0.5 0.5
+          balljoint shoulders {
+                    offset 0 0 0.5
+                    boxmin -0.45 -0.5 0
+                    boxmax 0.45 0.5 1
+                    balljoint neck {
+                              boxmin -0.1 -0.1 0
+                              boxmax 0.1 0.1 0.2
+                              offset 0 0 1
+                              balljoint head {
+                                        boxmin -0.5 -0.5 0
+                                        boxmax 0.5 0.5 1
+                                        offset 0 0 0.2
+                                        balljoint leftEar {
+                                                  offset 0.45 0.7 0.5
+                                                  boxmin -0.05 -0.2 -0.1
+                                                  boxmax 0.05 0.2 0.1
+                                        }
+                                        balljoint rightEar {
+                                                  offset -0.45 0.7 0.5
+                                                  boxmin -0.05 -0.2 -0.1
+                                                  boxmax 0.05 0.2 0.1
+                                        }
+
+                              }
+                    }
+                    balljoint leftFrontShoulder {
+                              offset 0.55 0.25 0.5
+                              boxmin -0.1 -1 -0.3
+                              boxmax 0.1 0.25 0.3
+                              balljoint leftForeleg {
+                                        offset 0 -1 0
+                                        boxmin -0.1 -1 -0.1
+                                        boxmax 0.1 0 0.1
+                                        balljoint leftHand {
+                                                  offset 0 -1 0
+                                                  boxmin -0.15 -0.3 -0.1
+                                                  boxmax 0.15 0 0.1
+                                        }
+                              }
+
+                    }
+                    balljoint rightFrontShoulder {
+                              offset -0.55 0.25 0.5
+                              boxmin -0.1 -1 -0.3
+                              boxmax 0.1 0.25 0.3
+                              balljoint rightForeleg {
+                                        offset 0 -1 0
+                                        boxmin -0.1 -1 -0.1
+                                        boxmax 0.1 0 0.1
+                                        balljoint rightHand {
+                                                  offset 0 -1 0
+                                                  boxmin -0.15 -0.3 -0.1
+                                                  boxmax 0.15 0 0.1
+                                        }
+                              }
+
+                    }
+          }
+          balljoint butt {
+                    offset 0 0 -0.5
+                    boxmin -0.45 -0.5 -1
+                    boxmax 0.45 0.5 0
+                    balljoint rightHip {
+                              offset -0.55 0.25 -0.5
+                              boxmin -0.1 -1 -0.35
+                              boxmax 0.1 0.25 0.35
+                              balljoint rightThigh {
+                                        offset 0 -1 0
+                                        boxmin -0.1 -0.6 -0.2
+                                        boxmax 0.1 0 0.2
+                                        balljoint rightShin {
+                                                  offset 0 -0.6 0
+                                                  boxmin -0.1 -0.6 -0.1
+                                                  boxmax 0.1 0 0.1
+                                                  balljoint rightFoot {
+                                                            offset 0 -0.6 0
+                                                            boxmin -0.15 -0.3 -0.1
+                                                            boxmax 0.15 0 0.1
+                                                            }
+                                        }
+
+                              }
+
+                    }
+                    balljoint leftHip {
+                              offset 0.55 0.25 -0.5
+                              boxmin -0.1 -1 -0.35
+                              boxmax 0.1 0.25 0.35
+                              balljoint leftThigh {
+                                        offset 0 -1 0
+                                        boxmin -0.1 -0.6 -0.2
+                                        boxmax 0.1 0 0.2
+                                        balljoint leftShin {
+                                                  offset 0 -0.6 0
+                                                  boxmin -0.1 -0.6 -0.1
+                                                  boxmax 0.1 0 0.1
+                                                  balljoint leftFoot {
+                                                            offset 0 -0.6 0
+                                                            boxmin -0.15 -0.3 -0.1
+                                                            boxmax 0.15 0 0.1
+                                                            }
+                                        }
+
+                              }
+                    }
+                    balljoint tail1 {
+                              offset 0 0.45 -1
+                              boxmin -0.05 -0.05 0
+                              boxmax 0.05 0.05 -0.5
+                              balljoint tail2 {
+                                        offset 0 0 -0.5
+                                        boxmin -0.05 -0.05 0
+                                        boxmax 0.05 0.05 -0.5
+                                        balljoint tail3 {
+                                                  offset 0 0 -0.5
+                                                  boxmin -0.05 -0.05 0
+                                                  boxmax 0.05 0.05 -0.5
+                                                  balljoint tail4 {
+                                                            offset 0 0 -0.5
+                                                            boxmin -0.05 -0.05 0
+                                                            boxmax 0.05 0.05 -0.5
+                                                            balljoint tail5 {
+                                                                      offset 0 0 -0.5
+                                                                      boxmin -0.05 -0.05 0
+                                                                      boxmax 0.05 0.05 -0.5
+
+                                                            }
+                                                  }
+                                        }
+                              }
+
+                    }
+          }
+}

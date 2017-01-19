@@ -7,6 +7,7 @@
 #include "util.hpp"
 #include "Timer.hpp"
 #include "Scene.hpp"
+#include "DOFWindow.hpp"
 
 namespace dmp
 {
@@ -31,6 +32,7 @@ namespace dmp
     Timer mTimer;
     Scene mScene;
     std::map<std::string, float> mCameraState;
+    std::unique_ptr<DOFWindow> mDOFWindow;
   };
 }
 #endif

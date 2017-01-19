@@ -15,7 +15,7 @@ balljoint root {
                               boxmin -0.1 -0.1 0
                               boxmax 0.1 0.1 0.2
                               offset 0 0 1
-                              rotzlimit -1.5 -1.5
+                              rotzlimit -1.5 1.5
                               rotylimit -0.5 0.5
                               rotxlimit -0.5 0.5
                               pose -0.4 0.5 0
@@ -23,7 +23,7 @@ balljoint root {
                                         boxmin -0.4 -0.4 0
                                         boxmax 0.4 0.4 0.8
                                         offset 0 0 0.2
-                                        rotzlimit -1.5 -1.5
+                                        rotzlimit -1.5 1.5
                                         rotylimit -0.5 0.5
                                         rotxlimit -0.5 0.5
                                         pose 0.5 0.5 0

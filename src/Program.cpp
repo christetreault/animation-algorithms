@@ -85,8 +85,11 @@ dmp::Program::Program(int width, int height,
 
   mScene.build(cameraFn, file);
 
+  mDOFWindow = std::make_unique<DOFWindow>(mScene.skeleton->getAST());
+
   mWindow.keyFn = [&mCameraState=mCameraState,
-                   &mDrawWireframe=mDrawWireframe](GLFWwindow * w,
+                   &mDrawWireframe=mDrawWireframe,
+                   &mDOFWindow=mDOFWindow](GLFWwindow * w,
                                                    int key,
                                                    int scancode,
                                                    int action,
@@ -148,6 +151,10 @@ dmp::Program::Program(int width, int height,
               mDrawWireframe = !mDrawWireframe;
               if (mDrawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
               else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+              break;
+            case GLFW_KEY_C:
+              mDOFWindow->show();
+              break;
             }
         }
     };
@@ -174,6 +181,7 @@ int dmp::Program::run()
 {
   mTimer.reset();
   mTimer.unpause();
+
   while (!mWindow.shouldClose())
     {
       // time marches on...
@@ -191,6 +199,7 @@ int dmp::Program::run()
         {
           mScene.update(mTimer.deltaTime());
           mRenderer.render(mScene, mTimer);
+          mDOFWindow->pollEvents();
           mWindow.swapBuffer();
         }
 

@@ -48,7 +48,7 @@ std::function<bool(glm::mat4 &, float)> dmp::Skeleton::makeXformFn(dmp::Balljoin
       float y = glm::clamp(bj->posey, bj->rotymin, bj->rotymax);
       float z = glm::clamp(bj->posez, bj->rotzmin, bj->rotzmax);
 
-      std::cerr << "<x, y, z> = <" << x << ", " << y << ", " << z << ">" << std::endl;
+      ifDebug(std::cerr << "pose <x, y, z> = <" << x << ", " << y << ", " << z << ">" << std::endl);
       auto rotx = glm::rotate(glm::mat4(),
                               x,
                               glm::vec3(1.0f, 0.0f, 0.0f));

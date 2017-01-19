@@ -57,7 +57,13 @@ namespace dmp
                        size_t matIdx,
                        size_t texIdx);
 
-    ~Skeleton() {std::cerr << "skeleton dtor" << std::endl;}
+    ~Skeleton() {}
+
+    Balljoint * getAST()
+    {
+      expect("Skeleton AST not null", mRoot);
+      return mRoot.get();
+    }
 
   private:
     static void insertInSceneImpl(dmp::Balljoint * bj,

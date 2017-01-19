@@ -5,6 +5,7 @@
 #include <FL/Fl_Scroll.H>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 #include <limits>
 
 int dmp::DOFSlider::handle(int event)
@@ -41,10 +42,10 @@ static double clampFloat(float val)
 {
   // FLTK seems to choke on +/- infinity. Since a 1 inch slider that
   // ranges between +/- infinity is probably not useful anyway, let's
-  // clamp it to +/- 1000
+  // clamp it to +/- (2 * PI)
   return (double) glm::clamp(val,
-                             -100.0f,
-                             100.0f);
+                             glm::pi<float>() * -2.0f,
+                             glm::pi<float>() * 2.0f);
 }
 
 int dmp::DOFWindow::addSkelNode(Balljoint * node, int offset)

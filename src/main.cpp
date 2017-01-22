@@ -4,9 +4,6 @@
 #include "Program.hpp"
 #include "util.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "ext/stb_image.h"
-
 static void libsInit()
 {
   expect("GLFW init failed!",

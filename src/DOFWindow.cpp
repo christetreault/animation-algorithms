@@ -48,6 +48,14 @@ static double clampFloat(float val)
                              glm::pi<float>() * 2.0f);
 }
 
+static double modFloat(float val)
+{
+  // due to above issue, mod the pose value by 2 * pi. This will ensure
+  // clamping the upper and lower to 2 * pi doesn't break the pose in
+  // the case that the pose is greater than +/- 2 * pi
+  return fmod((double) val, glm::pi<float>() * 2.0f);
+}
+
 int dmp::DOFWindow::addSkelNode(Balljoint * node, int offset)
 {
   auto box = new Fl_Box(0, offset, 150, 100, node->name.c_str());
@@ -56,19 +64,19 @@ int dmp::DOFWindow::addSkelNode(Balljoint * node, int offset)
   rotx->node = node;
   rotx->axis = X;
   rotx->bounds(clampFloat(node->rotxmin), clampFloat(node->rotxmax));
-  rotx->value((double)node->posex);
+  rotx->value(modFloat(node->posex));
   rotx->align(FL_ALIGN_RIGHT);
   auto roty = new DOFSlider(150, offset + 30, 150, 30, "y rotation");
   roty->node = node;
   roty->axis = Y;
   roty->bounds(clampFloat(node->rotymin), clampFloat(node->rotymax));
-  roty->value((double)node->posey);
+  roty->value(modFloat(node->posey));
   roty->align(FL_ALIGN_RIGHT);
   auto rotz = new DOFSlider(150, offset + 60, 150, 30, "z rotation");
   rotz->node = node;
   rotz->axis = Z;
   rotz->bounds(clampFloat(node->rotzmin), clampFloat(node->rotzmax));
-  rotz->value((double)node->posez);
+  rotz->value(modFloat(node->posez));
   rotz->align(FL_ALIGN_RIGHT);
 
   auto outOffset = offset;

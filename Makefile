@@ -22,7 +22,9 @@ LIB_DEFINES = $(GLM_DEFINES)
 
 OBJ_FILES = main.o Window.o Renderer.o Shader.o Program.o Timer.o Object.o \
 Scene.o UniformBuffer.o Graph.o Pass.o Texture.o Camera.o Skybox.o Skeleton.o \
-DOFWindow.o
+DOFWindow.o commandLine.o
+
+
 
 PKG_CONFIG_LIBS = glfw3 glew assimp
 MANUAL_LIBS = $(shell fltk-config --ldflags)
@@ -101,6 +103,9 @@ Skeleton.o : $(SRC_DIR)/Scene/Skeleton.cpp $(SRC_DIR)/Scene/Skeleton.hpp
 
 DOFWindow.o : $(SRC_DIR)/DOFWindow.cpp $(SRC_DIR)/DOFWindow.hpp
 	      $(call compile,DOFWindow.cpp)
+
+commandLine.o : $(SRC_DIR)/commandLine.cpp $(SRC_DIR)/commandLine.hpp
+		$(call compile,commandLine.cpp)
 
 rebuild : clean build
 

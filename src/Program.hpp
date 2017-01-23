@@ -26,6 +26,9 @@ namespace dmp
     int run();
   private:
     bool mDrawWireframe = false;
+    bool mDrawNormals = false;
+
+    RenderOptions mRenderOptions;
 
     Window mWindow;
     Renderer mRenderer;

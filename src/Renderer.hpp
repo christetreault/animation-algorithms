@@ -9,6 +9,12 @@
 
 namespace dmp
 {
+  struct RenderOptions
+  {
+    bool drawWireframe = false;
+    bool drawNormals = false;
+  };
+
   class Renderer
   {
   public:
@@ -22,7 +28,9 @@ namespace dmp
     Renderer(GLsizei width, GLsizei height, const std::string shaderFile);
     void resize(GLsizei width, GLsizei height);
 
-    void render(const Scene & scene, const Timer & timer);
+    void render(const Scene & scene,
+                const Timer & timer,
+                const RenderOptions & ro);
   private:
     void initRenderer();
     void loadShaders(const std::string shaderFile);

@@ -86,13 +86,17 @@ void dmp::Renderer::initPassConstants()
                                                    PassConstants::std140Size());
 }
 
-void dmp::Renderer::render(const Scene & scene, const Timer & timer)
+void dmp::Renderer::render(const Scene & scene,
+                           const Timer & timer,
+                           const RenderOptions & ro)
 {
   expect("Scene Object Constants not null",
          scene.objectConstants);
 
   glClear(GL_DEPTH_BUFFER_BIT);
   glClear(GL_COLOR_BUFFER_BIT);
+
+  if (ro.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   expectNoErrors("Clear prior to render");
 
@@ -108,6 +112,7 @@ void dmp::Renderer::render(const Scene & scene, const Timer & timer)
   pc.lightDir[0] = scene.lights[0].M * scene.lights[0].dir;
   pc.lightDir[1] = scene.lights[1].M * scene.lights[1].dir;
   pc.numLights = 2;
+  pc.drawMode = ro.drawNormals ? drawNormals : drawShaded;
 
   pc.P = mP;
   pc.invP = glm::inverse(pc.P);
@@ -174,4 +179,5 @@ void dmp::Renderer::render(const Scene & scene, const Timer & timer)
       scene.objects[i]->draw();
     }
 
+  if (ro.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }

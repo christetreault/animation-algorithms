@@ -88,7 +88,7 @@ dmp::Program::Program(int width, int height,
   mDOFWindow = std::make_unique<DOFWindow>(mScene.skeleton->getAST());
 
   mWindow.keyFn = [&mCameraState=mCameraState,
-                   &mDrawWireframe=mDrawWireframe,
+                   &mRenderOptions=mRenderOptions,
                    &mDOFWindow=mDOFWindow](GLFWwindow * w,
                                                    int key,
                                                    int scancode,
@@ -148,9 +148,10 @@ dmp::Program::Program(int width, int height,
                              maxZoom);
               break;
             case GLFW_KEY_W:
-              mDrawWireframe = !mDrawWireframe;
-              if (mDrawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-              else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+              mRenderOptions.drawWireframe = !(mRenderOptions.drawWireframe);
+              break;
+            case GLFW_KEY_N:
+              mRenderOptions.drawNormals = !(mRenderOptions.drawNormals);
               break;
             case GLFW_KEY_C:
               mDOFWindow->show();
@@ -198,7 +199,7 @@ int dmp::Program::run()
       else
         {
           mScene.update(mTimer.deltaTime());
-          mRenderer.render(mScene, mTimer);
+          mRenderer.render(mScene, mTimer, mRenderOptions);
           mDOFWindow->pollEvents();
           mWindow.swapBuffer();
         }

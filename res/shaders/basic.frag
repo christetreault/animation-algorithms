@@ -12,6 +12,7 @@ layout (std140) uniform PassConstants
   vec4 lightDir[8];
 
   uint numLights;
+  uint drawMode;
 
   mat4 P;
   mat4 invP;
@@ -46,6 +47,12 @@ uniform sampler2D tex;
 
 void main()
 {
+  if (drawMode == 1)
+    {
+      outColor = normalToFrag;
+      return;
+    }
+
   outColor = vec4(0.0, 0.0, 0.0, 0.0);
 
   for (uint i = 0; i < numLights; ++i)

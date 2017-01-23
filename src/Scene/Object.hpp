@@ -65,8 +65,7 @@ namespace dmp
            size_t matIdx,
            size_t texIdx);
 
-    Object(Shape shape, glm::vec4 min,
-           glm::vec4 max, glm::vec4 origin,
+    Object(Shape shape, glm::vec4 min, glm::vec4 max,
            size_t matIdx, size_t texIdx);
 
     bool isDirty() const {return mDirty;}

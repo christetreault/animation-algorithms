@@ -216,7 +216,7 @@ void dmp::Skeleton::insertInSceneImpl(dmp::Balljoint * bj,
   glm::vec4 min = {bj->boxminx, bj->boxminy, bj->boxminz, 1.0f};
   glm::vec4 max = {bj->boxmaxx, bj->boxmaxy, bj->boxmaxz, 1.0f};
   glm::vec4 off = {bj->offsetx, bj->offsety, bj->offsetz, 0.0f};
-  Object obj(Cube, min, max, off, matIdx, texIdx);
+  Object obj(Cube, min, max, matIdx, texIdx);
 
   auto offset = graph->transform(glm::translate(glm::mat4(), glm::vec3(off)));
   auto xform = offset->transform(Skeleton::makeXformFn(bj));

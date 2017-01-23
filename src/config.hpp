@@ -10,9 +10,6 @@ namespace dmp
 {
   static const float fieldOfView = glm::radians(60.0f);
 
-  // some random test model for the test scene implementation
-  static const char * testModel = "res/models/model.ply";
-
   static const float nearZ = 0.1f;
   static const float farZ = 1000.0f;
 
@@ -30,7 +27,7 @@ namespace dmp
     "res/textures/skyFront.tga"
   };
 
-  static const char * testTexture = "res/textures/test.jpg";
+  static const char * modelDir = "res/models";
 
 }
 

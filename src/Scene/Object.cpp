@@ -152,7 +152,7 @@ static const dmp::ObjectVertex cubeVerts[] =
     },
     {
       {-0.5f,  0.5f, -0.5f, 1.0f},
-      {-0.5f,  0.5f, -0.5f, 1.0f},
+      {-0.5f,  0.5f, -0.5f, 0.0f},
       {} // TODO: tex coords
     }
   };
@@ -173,8 +173,7 @@ static const GLuint cubeIdxs[] =
     6, 7, 3  //3, 7, 6
   };
 
-dmp::Object::Object(Shape shape, glm::vec4 min,
-                    glm::vec4 max, glm::vec4 origin,
+dmp::Object::Object(Shape shape, glm::vec4 min, glm::vec4 max,
                     size_t matIdx, size_t texIdx)
 {
   mHasIndices = true;

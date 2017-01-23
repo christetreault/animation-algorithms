@@ -3,6 +3,7 @@
 #include <iostream>
 #include "Program.hpp"
 #include "util.hpp"
+#include "CommandLine.hpp"
 
 static void libsInit()
 {
@@ -22,8 +23,7 @@ int main(int argc, char ** argv)
   ifDebug(std::cerr << "Built in debug mode..." << std::endl);
   ifRelease(std::cerr << "Built in release mode..." << std::endl);
 
-  std::string file = "test.skel";
-  if (argc > 1) file = argv[1];
+  CommandLine cmd(argc, argv);
 
   int exitCode = EXIT_SUCCESS;
 
@@ -34,7 +34,7 @@ int main(int argc, char ** argv)
       int width = 1280;
       int height = 720;
       Program p(width, height, "Petting a cat's tummy is dangerous,"
-                "but nothing ventured nothing gained", file.c_str());
+                "but nothing ventured nothing gained", cmd.skelPath.c_str());
 
       exitCode = p.run();
     }

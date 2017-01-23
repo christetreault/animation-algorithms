@@ -6,6 +6,9 @@
 
 namespace dmp
 {
+  static const unsigned int drawShaded = 0;
+  static const unsigned int drawNormals = 1;
+
   struct PassConstants
   {
     // Lights
@@ -13,7 +16,8 @@ namespace dmp
     glm::vec4 lightDir[maxLights];
 
     unsigned int numLights;
-    glm::uvec3 numLightsPadding; // barf
+    unsigned int drawMode;
+    glm::uvec2 numLightsPadding; // barf
 
     glm::mat4 P;
     glm::mat4 invP;

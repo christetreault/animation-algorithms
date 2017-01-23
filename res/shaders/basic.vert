@@ -9,6 +9,7 @@ layout (std140) uniform PassConstants
   vec4 lightColor[8]; // maxLights = 8
   vec4 lightDir[8];
   uint numLights;
+  uint drawMode;
 
   mat4 P;
   mat4 invP;
@@ -39,6 +40,6 @@ void main()
 {
   gl_Position = PV * M * posToVert;
   normalToFrag = normalize(normalM * normalToVert);
-  posToFrag = normalize(M * posToVert);
+  posToFrag = M * posToVert;
   texCoordToFrag = texCoordToVert;
 }

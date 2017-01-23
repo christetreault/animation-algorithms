@@ -29,7 +29,7 @@ PREFIX_RENDERER_CPP_FILES = $(addprefix Renderer/,$(RENDERER_CPP_FILES))
 SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skeleton.cpp Skybox.cpp
 PREFIX_SCENE_CPP_FILES = $(addprefix Scene/,$(SCENE_CPP_FILES))
 
-CPP_FILES = commandLine.cpp DOFWindow.cpp main.cpp Program.cpp Renderer.cpp \
+CPP_FILES = CommandLine.cpp DOFWindow.cpp main.cpp Program.cpp Renderer.cpp \
 	    Scene.cpp Timer.cpp Window.cpp
 PREFIX_CPP_FILES = $(addprefix src/$(CPP_FILES) $(PREFIX_SCENE_CPP_FILES) $(PREFIX_RENDERER_CPP_FILES) $(PREFIX_EXTERNAL_CPP_FILES))
 
@@ -44,11 +44,11 @@ PREFIX_OBJ_FILES = $(addprefix build/,$(OBJ_FILES))
 
 DEP_FILES = $(PREFIX_OBJ_FILES:%.o=%.d)
 
-PKG_CONFIG_LIBS = glfw3 glew assimp
+PKG_CONFIG_LIBS = glfw3 glew
 MANUAL_LIBS = $(shell fltk-config --ldflags)
 LIBS = $(MANUAL_LIBS) $(shell pkg-config --libs $(PKG_CONFIG_LIBS))
 
-PKG_CONFIG_INCLUDE = glfw3 glew assimp
+PKG_CONFIG_INCLUDE = glfw3 glew
 MANUAL_INCLUDE = $(shell fltk-config --cflags)
 INCLUDE = $(MANUAL_INCLUDE) $(shell pkg-config --cflags $(PKG_CONFIG_INCLUDE))
 

@@ -5,7 +5,7 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Hor_Value_Slider.H>
 
-#include "Scene/Skeleton.hpp"
+#include "Scene/Model/Skeleton.hpp"
 
 namespace dmp
 {

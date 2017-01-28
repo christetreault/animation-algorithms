@@ -20,25 +20,48 @@ endif
 
 LIB_DEFINES = $(GLM_DEFINES)
 
+# ------------------------------------------------------------------------------
+# External Sources
+# ------------------------------------------------------------------------------
 EXTERNAL_CPP_FILES = stb_image.cpp
 PREFIX_EXTERNAL_CPP_FILES = $(addprefix ext/,$(EXTERNAL_CPP_FILES))
+
+# ------------------------------------------------------------------------------
+# Renderer Sources
+# ------------------------------------------------------------------------------
 
 RENDERER_CPP_FILES = Pass.cpp Shader.cpp Texture.cpp UniformBuffer.cpp
 PREFIX_RENDERER_CPP_FILES = $(addprefix Renderer/,$(RENDERER_CPP_FILES))
 
-SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skeleton.cpp Skybox.cpp
-PREFIX_SCENE_CPP_FILES = $(addprefix Scene/,$(SCENE_CPP_FILES))
+# ------------------------------------------------------------------------------
+# Scene Sources
+# ------------------------------------------------------------------------------
+
+SCENE_MODEL_CPP_FILES = Skeleton.cpp Skin.cpp
+PREFIX_SCENE_MODEL_CPP_FILES = $(addprefix Model/,$(SCENE_MODEL_CPP_FILES))
+
+SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skybox.cpp Model.cpp
+PREFIX_SCENE_CPP_FILES = $(addprefix Scene/,$(SCENE_CPP_FILES) \
+$(PREFIX_SCENE_MODEL_CPP_FILES)
+
+# ------------------------------------------------------------------------------
+# Root Sources
+# ------------------------------------------------------------------------------
 
 CPP_FILES = CommandLine.cpp DOFWindow.cpp main.cpp Program.cpp Renderer.cpp \
 	    Scene.cpp Timer.cpp Window.cpp
-PREFIX_CPP_FILES = $(addprefix src/$(CPP_FILES) $(PREFIX_SCENE_CPP_FILES) $(PREFIX_RENDERER_CPP_FILES) $(PREFIX_EXTERNAL_CPP_FILES))
+PREFIX_CPP_FILES = $(addprefix src/$(CPP_FILES) $(PREFIX_SCENE_CPP_FILES) \
+$(PREFIX_RENDERER_CPP_FILES) $(PREFIX_EXTERNAL_CPP_FILES))
+
+# ------------------------------------------------------------------------------
+# Unprefixed Sources
+# ------------------------------------------------------------------------------
 
 UNPREFIX_CPP_FILES = $(RENDERER_CPP_FILES) $(SCENE_CPP_FILES) $(CPP_FILES) \
-$(EXTERNAL_CPP_FILES)
+$(EXTERNAL_CPP_FILES) $(SCENE_MODEL_CPP_FILES)
 
-#OBJ_FILES = main.o Window.o Renderer.o Shader.o Program.o Timer.o Object.o \
-#Scene.o UniformBuffer.o Graph.o Pass.o Texture.o Camera.o Skybox.o Skeleton.o \
-#DOFWindow.o commandLine.o
+
+
 OBJ_FILES = $(UNPREFIX_CPP_FILES:%.cpp=%.o)
 PREFIX_OBJ_FILES = $(addprefix build/,$(OBJ_FILES))
 
@@ -84,6 +107,9 @@ build/%.o : src/Renderer/%.cpp
 	  $(call compile,$<,$@)
 
 build/%.o : src/Scene/%.cpp
+	  $(call compile,$<,$@)
+
+build/%.o : src/Scene/Model/%.cpp
 	  $(call compile,$<,$@)
 
 # main.o : $(SRC_DIR)/main.cpp

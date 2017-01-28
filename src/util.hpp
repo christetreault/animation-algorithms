@@ -36,7 +36,7 @@
 #ifndef NDEBUG    // if (not debug not defined)
 #define ifDebug(_e)                             \
   {                                             \
-    _e;                                         \
+    _e;                                       \
   }
 #else
 #define ifDebug(_e) {}
@@ -56,9 +56,21 @@
 #error expect already defined!
 #endif
 
+#ifndef safeIncr
+#define safeIncr(_begin, _end)                                          \
+  {                                                                     \
+    auto & _evalBegin = (_begin);                                       \
+    auto & _evalEnd = (_end);                                           \
+    expect("Iterator not equal to end", _evalBegin != _evalEnd);        \
+    ++_evalBegin;                                                       \
+  }
+#else
+#error safeIncr already defined!
+#endif
+
 #ifndef unreachable
 #define unreachable(_msg)                                                \
-  {                                                                          \
+  {                                                                      \
     throw dmp::InvariantViolation("Unreachable code executed, this should be impossible: " _msg, __FILE__, __LINE__); \
   }
 #else

@@ -4,8 +4,9 @@
 #include <boost/tokenizer.hpp>
 #include <limits>
 #include <functional>
-#include "Object.hpp"
-#include "../util.hpp"
+#include "../../util.hpp"
+#include "../Graph.hpp"
+#include <glm/gtx/transform.hpp>
 
 static void parseFloatTriple(boost::tokenizer<boost::char_separator<char>>::iterator & iter,
                              boost::tokenizer<boost::char_separator<char>>::iterator & end,
@@ -48,7 +49,7 @@ std::function<bool(glm::mat4 &, float)> dmp::Skeleton::makeXformFn(dmp::Balljoin
       float y = glm::clamp(bj->posey, bj->rotymin, bj->rotymax);
       float z = glm::clamp(bj->posez, bj->rotzmin, bj->rotzmax);
 
-      ifDebug(std::cerr << "pose <x, y, z> = <" << x << ", " << y << ", " << z << ">" << std::endl);
+      //ifDebug(std::cerr << "pose <x, y, z> = <" << x << ", " << y << ", " << z << ">" << std::endl);
       auto rotx = glm::rotate(glm::mat4(),
                               x,
                               glm::vec3(1.0f, 0.0f, 0.0f));
@@ -202,12 +203,13 @@ void dmp::Skeleton::initSkeleton(std::string skelPath)
     {
       impossible("parse error: invalid root");
     }
-  ifDebug(printSkel(mRoot.get(), ""));
+  //ifDebug(printSkel(mRoot.get(), ""));
 }
 
 void dmp::Skeleton::insertInSceneImpl(dmp::Balljoint * bj,
                                       dmp::Branch * graph,
                                       std::vector<dmp::Object *> & objs,
+                                      std::vector<dmp::Object *> & objCache,
                                       size_t matIdx,
                                       size_t texIdx)
 {
@@ -217,12 +219,14 @@ void dmp::Skeleton::insertInSceneImpl(dmp::Balljoint * bj,
   glm::vec4 max = {bj->boxmaxx, bj->boxmaxy, bj->boxmaxz, 1.0f};
   glm::vec4 off = {bj->offsetx, bj->offsety, bj->offsetz, 0.0f};
   Object obj(Cube, min, max, matIdx, texIdx);
+  obj.hide();
 
   auto offset = graph->transform(glm::translate(glm::mat4(), glm::vec3(off)));
   auto xform = offset->transform(Skeleton::makeXformFn(bj));
 
   auto branch = xform->branch();
   objs.push_back(branch->insert(obj));
+  objCache.push_back(objs.back());
 
   for (auto & curr : bj->children)
     {
@@ -230,6 +234,7 @@ void dmp::Skeleton::insertInSceneImpl(dmp::Balljoint * bj,
       Skeleton::insertInSceneImpl(curr.get(),
                                   branch,
                                   objs,
+                                  objCache,
                                   matIdx,
                                   texIdx);
     }
@@ -244,6 +249,23 @@ void dmp::Skeleton::insertInScene(Branch * graph,
   Skeleton::insertInSceneImpl(mRoot.get(),
                               graph,
                               objs,
+                              mSkeletonObjects,
                               matIdx,
                               texIdx);
+}
+
+void dmp::Skeleton::show()
+{
+  for (auto & curr : mSkeletonObjects)
+    {
+      curr->show();
+    }
+}
+
+void dmp::Skeleton::hide()
+{
+  for (auto & curr : mSkeletonObjects)
+    {
+      curr->hide();
+    }
 }

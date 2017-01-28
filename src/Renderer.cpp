@@ -109,9 +109,13 @@ void dmp::Renderer::render(const Scene & scene,
 
   pc.lightColor[0] = scene.lights[0].color;
   pc.lightColor[1] = scene.lights[1].color;
+  pc.lightColor[2] = scene.lights[2].color;
+  pc.lightColor[3] = scene.lights[3].color;
   pc.lightDir[0] = scene.lights[0].M * scene.lights[0].dir;
   pc.lightDir[1] = scene.lights[1].M * scene.lights[1].dir;
-  pc.numLights = 2;
+  pc.lightDir[2] = scene.lights[2].M * scene.lights[2].dir;
+  pc.lightDir[3] = scene.lights[3].M * scene.lights[3].dir;
+  pc.numLights = 4;
   pc.drawMode = ro.drawNormals ? drawNormals : drawShaded;
 
   pc.P = mP;

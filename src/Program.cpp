@@ -23,7 +23,7 @@ static void errorCb(int error, const char * description)
 }
 
 dmp::Program::Program(int width, int height,
-                      const char * title, const char * file)
+                      const char * title, const CommandLine & file)
   : mWindow(width, height, title),
     mRenderer((GLsizei) mWindow.getFramebufferWidth(),
               (GLsizei) mWindow.getFramebufferHeight(),
@@ -83,80 +83,128 @@ dmp::Program::Program(int width, int height,
       return true;
     };
 
-  mScene.build(cameraFn, file);
-
-  mDOFWindow = std::make_unique<DOFWindow>(mScene.skeleton->getAST());
-
-  mWindow.keyFn = [&mCameraState=mCameraState,
-                   &mRenderOptions=mRenderOptions,
-                   &mDOFWindow=mDOFWindow](GLFWwindow * w,
-                                                   int key,
-                                                   int scancode,
-                                                   int action,
-                                                   int mods)
+  auto lightFn = [&l=mLightCoeff](glm::mat4 & M, float deltaT)
     {
-      static const float minZoom = 1.0f;
-      static const float maxZoom = 100.0f;
-      static const float zoomInc = 1.0f;
-      static const float minElev = -(glm::half_pi<float>() - 0.1f);
-      static const float maxElev = glm::half_pi<float>() - 0.1f;
-      static const float minHorz = -std::numeric_limits<float>::infinity();
-      static const float maxHorz = std::numeric_limits<float>::infinity();
-      static const float rotInc = 0.2f;
+      M = glm::rotate(M,
+                      ((float) l) * (deltaT / 3.0f),
+                      glm::vec3(0.0f, 1.0f, 0.0f));
 
-      if (action == GLFW_PRESS)
-        {
-          switch (key)
+      return true;
+    };
+
+  mScene.build(cameraFn, lightFn, file);
+
+  //mDOFWindow = std::make_unique<DOFWindow>(mScene.model->getSkeletonAST());
+
+  Keybind esc((GLFWwindow *) mWindow,
+              [&](Keybind & k)
+              {
+                glfwSetWindowShouldClose(k.window, true);
+              },
+              GLFW_KEY_ESCAPE);
+  Keybind up(mWindow,
+             [&](Keybind &)
+             {
+               mCameraState[VERTICAL]
+                 = glm::clamp(mCameraState[VERTICAL] - rotInc,
+                              minElev,
+                              maxElev);
+             },
+             GLFW_KEY_UP);
+  Keybind down(mWindow,
+               [&](Keybind &)
+               {
+                 mCameraState[VERTICAL]
+                   = glm::clamp(mCameraState[VERTICAL] + rotInc,
+                                minElev,
+                                maxElev);
+               },
+               GLFW_KEY_DOWN);
+  Keybind right(mWindow,
+                [&](Keybind &)
+                {
+                  mCameraState[HORIZONTAL]
+                    = glm::clamp(mCameraState[HORIZONTAL] + rotInc,
+                                 minHorz,
+                                 maxHorz);
+                },
+                GLFW_KEY_RIGHT);
+  Keybind left(mWindow,
+               [&](Keybind &)
+               {
+                 mCameraState[HORIZONTAL]
+                   = glm::clamp(mCameraState[HORIZONTAL] - rotInc,
+                                minHorz,
+                                maxHorz);
+               },
+               GLFW_KEY_LEFT);
+  Keybind pageUp(mWindow,
+                 [&](Keybind &)
+                 {
+                   mCameraState[DISTANCE]
+                     = glm::clamp(mCameraState[DISTANCE] - zoomInc,
+                                  minZoom,
+                                  maxZoom);
+                 },
+                 GLFW_KEY_PAGE_UP);
+  Keybind pageDown(mWindow,
+                   [&](Keybind &)
+                   {
+                     mCameraState[DISTANCE]
+                       = glm::clamp(mCameraState[DISTANCE] + zoomInc,
+                                    minZoom,
+                                    maxZoom);
+                   },
+                   GLFW_KEY_PAGE_DOWN);
+  Keybind w(mWindow,
+            [&](Keybind &)
             {
-            case GLFW_KEY_ESCAPE:
-              glfwSetWindowShouldClose(w, true);
-              break;
-            case GLFW_KEY_UP:
-              mCameraState[VERTICAL]
-                = glm::clamp(mCameraState[VERTICAL] - rotInc,
-                             minElev,
-                             maxElev);
-              break;
-            case GLFW_KEY_DOWN:
-              mCameraState[VERTICAL]
-                = glm::clamp(mCameraState[VERTICAL] + rotInc,
-                             minElev,
-                             maxElev);
-              break;
-            case GLFW_KEY_RIGHT:
-              mCameraState[HORIZONTAL]
-                = glm::clamp(mCameraState[HORIZONTAL] + rotInc,
-                             minHorz,
-                             maxHorz);
-              break;
-            case GLFW_KEY_LEFT:
-              mCameraState[HORIZONTAL]
-                = glm::clamp(mCameraState[HORIZONTAL] - rotInc,
-                             minHorz,
-                             maxHorz);
-              break;
-            case GLFW_KEY_PAGE_UP:
-              mCameraState[DISTANCE]
-                = glm::clamp(mCameraState[DISTANCE] - zoomInc,
-                             minZoom,
-                             maxZoom);
-              break;
-            case GLFW_KEY_PAGE_DOWN:
-              mCameraState[DISTANCE]
-                = glm::clamp(mCameraState[DISTANCE] + zoomInc,
-                             minZoom,
-                             maxZoom);
-              break;
-            case GLFW_KEY_W:
               mRenderOptions.drawWireframe = !(mRenderOptions.drawWireframe);
-              break;
-            case GLFW_KEY_N:
+            },
+            GLFW_KEY_W);
+  Keybind n(mWindow,
+            [&](Keybind &)
+            {
               mRenderOptions.drawNormals = !(mRenderOptions.drawNormals);
-              break;
-            case GLFW_KEY_C:
+            },
+            GLFW_KEY_N);
+  Keybind c(mWindow,
+            [&](Keybind &)
+            {
               mDOFWindow->show();
-              break;
-            }
+            },
+            GLFW_KEY_C);
+  Keybind l(mWindow,
+            [&](Keybind &)
+            {
+              if (mLightCoeff == 0) mLightCoeff = 1;
+              else if (mLightCoeff == 1) mLightCoeff = -1;
+              else mLightCoeff = 0;
+            },
+            GLFW_KEY_L);
+
+  mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
+               w, n, c, l};
+
+  mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
+                                         int key,
+                                         int scancode,
+                                         int action,
+                                         int mods)
+    {
+      expect("keybinds not empty", !mKeybinds.empty());
+      Keybind got = {};
+      got.window = w;
+      got.key = key;
+      got.scancode = scancode;
+      got.action = action;
+      got.mods = mods;
+
+      auto res = mKeybinds.find(got);
+
+      if (res != mKeybinds.end())
+        {
+          res->fn(got);
         }
     };
 }

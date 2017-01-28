@@ -10,7 +10,9 @@
 #include "Scene/Skybox.hpp"
 #include "Renderer/UniformBuffer.hpp"
 #include "Renderer/Texture.hpp"
-#include "Scene/Skeleton.hpp"
+#include "Scene/Model.hpp"
+#include "Scene/Model/Skeleton.hpp"
+#include "CommandLine.hpp"
 
 namespace dmp
 {
@@ -25,10 +27,10 @@ namespace dmp
     std::unique_ptr<UniformBuffer> objectConstants;
     std::unique_ptr<Branch> graph;
     std::unique_ptr<Skybox> skybox;
-    std::unique_ptr<Skeleton> skeleton;
 
     void build(std::function<bool(glm::mat4 &, float)> cameraFn,
-               const char * file);
+               std::function<bool(glm::mat4 &, float)> lightFn,
+               const CommandLine & cmd);
     void update(float deltaT);
     void free();
   };

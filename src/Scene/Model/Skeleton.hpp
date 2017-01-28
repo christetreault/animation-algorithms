@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "Object.hpp"
-#include "Graph.hpp"
+#include "../Object.hpp"
 
 namespace dmp
 {
@@ -38,6 +37,8 @@ namespace dmp
     bool rotateDirty = true;
   };
 
+  class Branch;
+
   class Skeleton
   {
   public:
@@ -64,11 +65,14 @@ namespace dmp
       expect("Skeleton AST not null", mRoot);
       return mRoot.get();
     }
+    void show();
+    void hide();
 
   private:
     static void insertInSceneImpl(dmp::Balljoint * bj,
                                   dmp::Branch * graph,
                                   std::vector<dmp::Object *> & objs,
+                                  std::vector<dmp::Object *> & objCache,
                                   size_t matIdx,
                                   size_t texIdx);
     std::unique_ptr<Balljoint> mRoot;
@@ -79,6 +83,7 @@ namespace dmp
                                      std::vector<std::string>::iterator & begin,
                                      std::vector<std::string>::iterator & end);
     static std::function<bool(glm::mat4 &, float)> makeXformFn(dmp::Balljoint * bj);
+    std::vector<Object *> mSkeletonObjects;
   };
 }
 

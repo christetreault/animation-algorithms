@@ -15,10 +15,10 @@ namespace dmp
 
   static const size_t maxLights = 8;
 
-  static const char * basicShader = "res/shaders/basic";
-  static const char * skyboxShader = "res/shaders/skybox";
+  static const char * const basicShader = "res/shaders/basic";
+  static const char * const skyboxShader = "res/shaders/skybox";
 
-  static const char * skyBox[6] = {
+  static const char * const skyBox[6] = {
     "res/textures/skyRight.tga",
     "res/textures/skyLeft.tga",
     "res/textures/skyUp.tga",
@@ -27,7 +27,7 @@ namespace dmp
     "res/textures/skyFront.tga"
   };
 
-  static const char * modelDir = "res/models";
+  static const char * const modelDir = "res/models";
 
 }
 

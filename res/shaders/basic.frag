@@ -49,7 +49,7 @@ void main()
 {
   if (drawMode == 1)
     {
-      outColor = normalToFrag;
+      outColor = normalize(normalToFrag);
       return;
     }
 
@@ -76,5 +76,5 @@ void main()
       outColor += (am + diff + spec);
     }
 
-  outColor = texture(tex, texCoordToFrag) * outColor;
+    outColor = texture(tex, texCoordToFrag) * (outColor);
 }

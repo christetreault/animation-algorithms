@@ -63,12 +63,13 @@ namespace dmp
            std::vector<GLuint> idxs,
            GLenum format,
            size_t matIdx,
-           size_t texIdx);
+           size_t texIdx,
+           GLenum cullFace = GL_BACK);
 
     Object(Shape shape, glm::vec4 min, glm::vec4 max,
            size_t matIdx, size_t texIdx);
 
-    bool isDirty() const {return mDirty;}
+    bool isDirty() const {return mDirty && mVisible;}
     void setClean() {mDirty = false;}
     void setM(glm::mat4 M)
     {
@@ -87,6 +88,8 @@ namespace dmp
     void draw() const
     {
       expect("Object valid", mValid);
+      if (!mVisible) return;
+      glCullFace(mCullFace);
       if (mHasIndices)
         {
           glDrawElements(mPrimFormat,
@@ -100,6 +103,7 @@ namespace dmp
                        0,
                        drawCount);
         }
+      glCullFace(GL_BACK);
       expectNoErrors("Draw object");
     }
 
@@ -121,6 +125,18 @@ namespace dmp
 
     static void sortByMaterial(std::vector<Object *> & objs);
 
+    void show()
+    {
+      if (mVisible) return;
+      mVisible = true;
+      mDirty = true;
+    };
+
+    void hide()
+    {
+      mVisible = false;
+    }
+
   private:
     void initObject(std::vector<ObjectVertex> * verts,
                     std::vector<GLuint> * idxs);
@@ -138,6 +154,8 @@ namespace dmp
     size_t mTextureIdx;
 
     GLsizei drawCount;
+    bool mVisible = true;
+    GLenum mCullFace = GL_BACK;
   };
 }
 

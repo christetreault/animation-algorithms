@@ -51,7 +51,7 @@ void dmp::Skybox::initSkybox(std::vector<const char *> tex)
                        &height,
                        &channels,
                        3); // don't want a transparent skybox
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + ((GLenum)i),
                    0,
                    GL_RGB,
                    width,

@@ -7,15 +7,13 @@
 #include "config.hpp"
 
 void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
-                       const char * name)
+                       std::function<bool(glm::mat4 &, float)> lightFn,
+                       const CommandLine & c)
 {
   graph = std::make_unique<Branch>();
 
-  skeleton = std::make_unique<Skeleton>(name);
-
-  skeleton->insertInScene(graph.get(),
-                          objects,
-                          0, 0);
+  auto model = graph->insert(Model(c, objects,
+                                   1, 0));
 
   Object::sortByMaterial(objects);
 
@@ -43,10 +41,10 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
       {
         0.296648, 0.296648, 0.296648, 1.0f
       },
-      0.088f
+      0.6f
     });
 
-  std::string tex("");
+  std::string tex = model->askTexturePath();
   textures.emplace_back(tex);
 
   materialConstants =
@@ -58,37 +56,55 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
       materialConstants->update(i, materials[i]);
     }
 
-   lights.push_back({
-       {1.0f, 1.0f, 1.0f, 1.0f},
-       {0.0f, -0.1f, 1.0f, 0.0f},
+  lights.push_back({
+       {0.05f, 1.0f, 0.05f, 1.0f},
+       {0.0f, 0.9f, 1.0f, 0.0f},
        glm::mat4()
      });
    lights.push_back({
-       {0.1f, 1.1f, 0.1f, 1.0f},
-       {0.0f, -1.0f, 0.0f, 0.0f},
+       {1.0f, 0.05f, 0.05f, 1.0f},
+       {0.0f, 0.0f, 1.0f, 0.0f},
+       glm::mat4()
+     });
+   lights.push_back({
+       {0.05f, 0.05f, 1.0f, 1.0f},
+       {0.0f, -0.9f, 1.0f, 0.0f},
+       glm::mat4()
+     });
+   lights.push_back({
+       {0.3f, 0.3f, 0.3f, 1.0f},
+       {-1.0f, 0.0f, 0.0f, 0.0f},
        glm::mat4()
      });
 
-  auto antiY = graph->transform([](glm::mat4 & M, float deltaT)
-    {
-      M = glm::rotate(M,
-                      -(deltaT / 2.0f),
-                      glm::vec3(0.0f, 1.0f, 0.0f));
 
-      return true;
-    });
-  auto cam = graph->transform(cameraFn);
+   auto lightRot = graph->transform(lightFn);
+   auto lightGroup = lightRot->branch();
+   auto redLightRotation = glm::rotate(glm::mat4(),
+                                       glm::pi<float>() / 2.0f,
+                                       glm::vec3(0.0f, 1.0f, 0.0f));
+   auto redLight = lightGroup->transform(redLightRotation);
+   auto greenLightRotation = glm::rotate(glm::mat4(),
+                                         (7.0f * glm::pi<float>()) / 6.0f,
+                                         glm::vec3(0.0f, 1.0f, 0.0f));
+   auto greenLight = lightGroup->transform(greenLightRotation);
+   auto blueLightRotation = glm::rotate(glm::mat4(),
+                                        (11.0f * glm::pi<float>()) / 6.0f,
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
+   auto blueLight = lightGroup->transform(blueLightRotation);
+   auto cam = graph->transform(cameraFn);
+   redLight->insert(lights[1]);
+   greenLight->insert(lights[0]);
+   blueLight->insert(lights[2]);
+   graph->insert(lights[3]);
 
-  antiY->insert(lights[0]);
-  graph->insert(lights[0]);
+   cameras.emplace_back();
+   graph->insert(cameras[0].focus());
+   cam->insert(cameras[0].pos());
 
-  cameras.emplace_back();
-  graph->insert(cameras[0].focus());
-  cam->insert(cameras[0].pos());
-
-  objectConstants
-    = std::make_unique<UniformBuffer>(objects.size(),
-                                      ObjectConstants::std140Size());
+   objectConstants
+     = std::make_unique<UniformBuffer>(objects.size(),
+                                       ObjectConstants::std140Size());
 
   std::vector<const char *> sb;
   for (size_t i = 0; i < 6; ++i) sb.push_back(skyBox[i]);

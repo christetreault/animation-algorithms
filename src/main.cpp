@@ -34,7 +34,7 @@ int main(int argc, char ** argv)
       int width = 1280;
       int height = 720;
       Program p(width, height, "Petting a cat's tummy is dangerous,"
-                "but nothing ventured nothing gained", cmd.skelPath.c_str());
+                "but nothing ventured nothing gained", cmd);
 
       exitCode = p.run();
     }

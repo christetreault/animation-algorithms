@@ -20,13 +20,14 @@ dmp::Object::Object(std::vector<ObjectVertex> verts,
                     std::vector<GLuint> idxs,
                     GLenum format,
                     size_t matIdx,
-                    size_t texIdx)
+                    size_t texIdx,
+                    GLenum cullFace)
 {
   mHasIndices = true;
   mPrimFormat = format;
   mMaterialIdx = matIdx;
   mTextureIdx = texIdx;
-
+  mCullFace = cullFace;
   initObject(&verts, &idxs);
 }
 

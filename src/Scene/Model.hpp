@@ -11,6 +11,18 @@ namespace dmp
 {
   class Branch;
 
+  struct ModelConstants
+  {
+    glm::mat4 WB[128];
+
+    static size_t std140Size()
+    {
+      return dmp::std140PadStruct((std140MatArraySize<float, 4, 4, 128>()));
+    }
+
+    operator GLvoid *() {return (GLvoid *) this;}
+  };
+
   class Model
   {
   public:
@@ -40,9 +52,9 @@ namespace dmp
     }
 
   private:
+    bool mDirty = true;
     std::unique_ptr<Skeleton> mSkeleton;
     std::unique_ptr<Skin> mSkin;
-    std::unique_ptr<Branch> mRoot;
   };
 }
 

@@ -37,7 +37,8 @@ void ContainerVisitor::operator()(Model & mod) const
 
 void Container::updateImpl(float deltaT, glm::mat4 M, bool dirty)
 {
-  if (dirty)
+  if (dirty
+      || mValue.which() == 1)
     {
       boost::apply_visitor(ContainerVisitor(deltaT, M, dirty), mValue);
     }

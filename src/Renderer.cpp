@@ -183,5 +183,7 @@ void dmp::Renderer::render(const Scene & scene,
       scene.objects[i]->draw();
     }
 
+
+
   if (ro.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }

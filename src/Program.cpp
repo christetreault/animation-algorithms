@@ -94,7 +94,7 @@ dmp::Program::Program(int width, int height,
 
   mScene.build(cameraFn, lightFn, file);
 
-  //mDOFWindow = std::make_unique<DOFWindow>(mScene.model->getSkeletonAST());
+  mDOFWindow = std::make_unique<DOFWindow>(mScene.model->getSkeletonAST());
 
   Keybind esc((GLFWwindow *) mWindow,
               [&](Keybind & k)

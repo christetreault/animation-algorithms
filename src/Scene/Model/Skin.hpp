@@ -5,32 +5,36 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <boost/tokenizer.hpp>
+#include <iostream>
+#include <GL/glew.h>
+#include <memory>
 
 namespace dmp
 {
   class Branch;
   class Object;
+  class Model;
 
   struct SkinWeight
   {
     size_t count;
-    std::vector<size_t> index;
+    std::vector<GLuint> index;
     std::vector<float> weight;
   };
 
   struct SkinData
   {
     std::string filename;
-    std::vector<glm::vec4> verts;
+    std::vector<glm::vec3> verts;
     std::vector<size_t> idxs;
-    std::vector<glm::vec4> normals;
+    std::vector<glm::vec3> normals;
     std::vector<glm::vec2> texCoords;
     std::vector<SkinWeight> weights;
     std::vector<glm::mat4> invBindings;
     std::string texFile;
   };
 
-  class Skin // TODO: need to send binding matricies to shader using texture map
+  class Skin
   {
   public:
     Skin() = delete;
@@ -40,15 +44,20 @@ namespace dmp
     Skin & operator=(Skin &&) = default;
 
     Skin(std::string skinPath) {initSkin(skinPath);}
-    std::vector<glm::mat4> & getBindings() {return mSkinData.invBindings;}
 
-    void insertInScene(Branch * graph,
-                       std::vector<Object *> & objs,
+    void insertInScene(std::vector<Object *> & objs,
                        size_t matIdx,
                        size_t texIdx);
 
     const std::string & askTexturePath() const {return mSkinData.texFile;}
+    const std::vector<glm::mat4> & askBindings() const
+    {
+      return mSkinData.invBindings;
+    }
 
+    void tellBindingMats(const std::vector<glm::mat4> & boneM);
+
+    void update(float deltaT, glm::mat4 M, bool dirty);
     void hide();
     void show();
   private:
@@ -56,7 +65,7 @@ namespace dmp
 
     SkinData mSkinData;
     bool mIsTextured = false;
-    Object * mObjectCache;
+    std::unique_ptr<Object> mObject;
   };
 }
 

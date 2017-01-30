@@ -91,7 +91,7 @@ static void parsePositions(dmp::SkinData & data,
     {
       float x, y, z;
       parseVec3(x, y, z, iter, end);
-      data.verts.push_back({x, y, z, 1.0f});
+      data.verts.push_back({x, y, z});
     };
 
   parseField(data, iter, end, tokPositions, t, f);
@@ -115,7 +115,7 @@ static void parseNormals(dmp::SkinData & data,
     {
       float x, y, z;
       parseVec3(x, y, z, iter, end);
-      data.normals.push_back({x, y, z, 1.0f});
+      data.normals.push_back({x, y, z});
     };
 
   parseField(data, iter, end, tokNormals, t, f);
@@ -208,6 +208,7 @@ static void parseBindings(dmp::SkinData & data,
       parseVec3(cx, cy, cz, iter, end);
       parseVec3(dx, dy, dz, iter, end);
 
+
       glm::mat4 B =
       {
         ax,   bx,   cx,   dx,
@@ -216,7 +217,17 @@ static void parseBindings(dmp::SkinData & data,
         0.0f, 0.0f, 0.0f, 1.0f
       };
 
-      data.invBindings.push_back(glm::inverse(B));
+      /*
+      glm::mat4 B =
+      {
+        ax, ay, az, 0.0f,
+        bx, by, bz, 0.0f,
+        cx, cy, cz, 0.0f,
+        dx, dy, dz, 1.0f
+      };
+      */
+
+      data.invBindings.push_back(glm::transpose(glm::inverse(B)));
       safeIncr(iter, end); // advance to next matrix or }
     };
 
@@ -387,10 +398,18 @@ void dmp::Skin::initSkin(std::string skinPath)
              }
            return true;
          }());
+
+  for (size_t i = 0; i < mSkinData.weights.size(); ++i)
+    {
+      for (size_t j = 0; j < mSkinData.weights[i].index.size(); ++j)
+        {
+          expect("Skin weight index valid",
+                 mSkinData.weights[i].index[j] < mSkinData.invBindings.size());
+        }
+    }
 }
 
-void dmp::Skin::insertInScene(Branch * graph,
-                              std::vector<Object *> & objs,
+void dmp::Skin::insertInScene(std::vector<Object *> & objs,
                               size_t matIdx,
                               size_t texIdx)
 {
@@ -398,9 +417,24 @@ void dmp::Skin::insertInScene(Branch * graph,
   verts.reserve(mSkinData.verts.size());
   for (size_t i = 0; i < mSkinData.verts.size(); ++i)
     {
-      verts.push_back({mSkinData.verts[i],
-            mSkinData.normals[i],
-            mSkinData.texCoords[i]});
+      auto weight = mSkinData.weights[i];
+      expect("We support max 4 weights", weight.count <= 4);
+      expect("there must be > 0 weights", weight.count > 0);
+      int idxs[4] = {-1, -1, -1, -1};
+      glm::vec4 wvals = {0.0f, 0.0f, 0.0f, 0.0f};
+
+      for (int j = 0; j < (int) weight.count; ++j)
+        {
+          idxs[j] = (int) weight.index[j];
+          wvals[j] = weight.weight[j];
+        }
+
+      ObjectVertex v = {mSkinData.verts[i],
+                        mSkinData.normals[i],
+                        mSkinData.texCoords[i],
+                        wvals,
+                        {idxs[0], idxs[1], idxs[2], idxs[3]}};
+      verts.push_back(v);
     }
   std::vector<GLuint> idxs;
   idxs.reserve(mSkinData.idxs.size());
@@ -424,25 +458,48 @@ void dmp::Skin::insertInScene(Branch * graph,
   // You can breathe now
   // -----------------------------------------------------------------------
 
-  Object obj(verts,
-             idxs,
-             GL_TRIANGLES,
-             matIdx,
-             texIdx,
-             cullFace);
-  obj.show();
+  mObject = std::make_unique<Object>(verts,
+                                     idxs,
+                                     GL_TRIANGLES,
+                                     matIdx,
+                                     texIdx,
+                                     cullFace);
+  mObject->show();
 
-  objs.push_back(graph->insert(obj));
-  mObjectCache = objs.back();
+  objs.push_back(mObject.get());
 
 }
 
 void dmp::Skin::hide()
 {
-  if (mObjectCache) mObjectCache->hide();
+  if (mObject) mObject->hide();
 }
 
 void dmp::Skin::show()
 {
-  if (mObjectCache) mObjectCache->show();
+  if (mObject) mObject->show();
+}
+
+void dmp::Skin::update(float deltaT,
+                       glm::mat4 M,
+                       bool dirty)
+{
+  if (mObject) mObject->setM(M);
+}
+
+void dmp::Skin::tellBindingMats(const std::vector<glm::mat4> & m)
+{
+  expect("bone Ms has same length as binding Ms",
+         m.size() == mSkinData.invBindings.size());
+  expect("object not null", mObject);
+
+  std::vector<glm::mat4> outToObj(0);
+  outToObj.reserve(m.size());
+
+  for (size_t i = 0; i < m.size(); ++i)
+    {
+      outToObj.push_back(m[i] * mSkinData.invBindings[i]);
+    }
+
+  mObject->tellBindingMats(outToObj);
 }

@@ -37,7 +37,44 @@ namespace dmp
     bool rotateDirty = true;
   };
 
-  class Branch;
+  class Bone
+  {
+  public:
+    Bone() = delete;
+    Bone(const Bone &) = delete;
+    Bone & operator=(const Bone &) = delete;
+    Bone(Bone &&) = default;
+    Bone & operator=(Bone &&) = default;
+
+    Bone(Balljoint * bj,
+         bool * dirty,
+         std::vector<dmp::Object *> & objs,
+         std::vector<dmp::Object *> & objCache,
+         size_t matIdx,
+         size_t texIdx,
+         std::vector<glm::mat4>::iterator & invBBegin,
+         std::vector<glm::mat4>::iterator & invBEnd);
+
+    void update(float deltaT, glm::mat4 M, bool dirty,
+                std::vector<glm::mat4> & Ms);
+  private:
+    void initBone(Balljoint * bj,
+                  bool * dirty,
+                  std::vector<dmp::Object *> & objs,
+                  std::vector<dmp::Object *> & objCache,
+                  size_t matIdx,
+                  size_t texIdx,
+                  std::vector<glm::mat4>::iterator & invBBegin,
+                  std::vector<glm::mat4>::iterator & invBEnd);
+
+    std::unique_ptr<Object> mObj;
+    std::vector<std::unique_ptr<Bone>> mChildren;
+
+    glm::mat4 mInvB;
+    glm::mat4 mOffset;
+    std::function<bool(glm::mat4 &, float)> mTransformFn;
+    glm::mat4 mRotation;
+  };
 
   class Skeleton
   {
@@ -53,37 +90,42 @@ namespace dmp
       initSkeleton(skelPath);
     }
 
-    void insertInScene(Branch * graph,
-                       std::vector<Object *> & objs,
-                       size_t matIdx,
-                       size_t texIdx);
+    void makeBones(std::vector<Object *> & objs,
+                   size_t matIdx,
+                   size_t texIdx,
+                   std::vector<glm::mat4>::iterator & invBBegin,
+                   std::vector<glm::mat4>::iterator & invBEnd);
 
     ~Skeleton() {}
 
     Balljoint * getAST()
     {
       expect("Skeleton AST not null", mRoot);
-      return mRoot.get();
+      return mAST.get();
     }
+
     void show();
     void hide();
 
+    void update(float deltaT, glm::mat4 M, bool dirty);
+
+    bool isDirty() const {return mDirty;}
+    static std::function<bool(glm::mat4 &, float)> makeXformFn(dmp::Balljoint * bj,
+                                                               bool * dirty);
+    const std::vector<glm::mat4> & getMs() const;
   private:
-    static void insertInSceneImpl(dmp::Balljoint * bj,
-                                  dmp::Branch * graph,
-                                  std::vector<dmp::Object *> & objs,
-                                  std::vector<dmp::Object *> & objCache,
-                                  size_t matIdx,
-                                  size_t texIdx);
-    std::unique_ptr<Balljoint> mRoot;
+    std::unique_ptr<Bone> mRoot;
+    std::unique_ptr<Balljoint> mAST;
     void initSkeleton(std::string skelPath);
 
     std::unique_ptr<Balljoint> parse(std::string currName,
                                      std::string currCtor,
                                      std::vector<std::string>::iterator & begin,
                                      std::vector<std::string>::iterator & end);
-    static std::function<bool(glm::mat4 &, float)> makeXformFn(dmp::Balljoint * bj);
+
     std::vector<Object *> mSkeletonObjects;
+    std::vector<glm::mat4> mMs;
+    bool mDirty = true;
   };
 }
 

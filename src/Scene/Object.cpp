@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Model.hpp"
+
+#include <glm/gtx/string_cast.hpp>
 
 dmp::Object::Object(std::vector<ObjectVertex> verts,
                     GLenum format,
@@ -31,9 +34,23 @@ dmp::Object::Object(std::vector<ObjectVertex> verts,
   initObject(&verts, &idxs);
 }
 
+dmp::Object::Object(std::vector<ObjectVertex> verts,
+                    std::vector<GLuint> idxs,
+                    GLenum format,
+                    size_t matIdx,
+                    size_t texIdx)
+{
+  mHasIndices = true;
+  mPrimFormat = format;
+  mMaterialIdx = matIdx;
+  mTextureIdx = texIdx;
+  initObject(&verts, &idxs);
+}
+
 void dmp::Object::initObject(std::vector<ObjectVertex> * verts,
                              std::vector<GLuint> * idxs)
 {
+  clearBindingMats();
   glGenVertexArrays(1,&mVAO);
   glGenBuffers(1, &mVBO);
   if (mHasIndices) glGenBuffers(1, &mEBO);
@@ -66,7 +83,7 @@ void dmp::Object::initObject(std::vector<ObjectVertex> * verts,
 
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0,        // index
-                        4,        // number of components
+                        3,        // number of components
                         GL_FLOAT, // what is the type of this thing?
                         GL_FALSE, // normalize [intMin, intMax] to [-1,1]?
                         sizeof(ObjectVertex), // how much space between things?
@@ -74,7 +91,7 @@ void dmp::Object::initObject(std::vector<ObjectVertex> * verts,
 
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(1,
-                        4,
+                        3,
                         GL_FLOAT,
                         GL_FALSE,
                         sizeof(ObjectVertex),
@@ -87,6 +104,21 @@ void dmp::Object::initObject(std::vector<ObjectVertex> * verts,
                         GL_FALSE,
                         sizeof(ObjectVertex),
                         (GLvoid *) offsetof(ObjectVertex, texCoords));
+
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3,
+                        4,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(ObjectVertex),
+                        (GLvoid *) offsetof(ObjectVertex, weights));
+
+  glEnableVertexAttribArray(4);
+  glVertexAttribIPointer(4,
+                         4,
+                         GL_INT,
+                         sizeof(ObjectVertex),
+                         (GLvoid *) offsetof(ObjectVertex, idxs));
 
   expectNoErrors("Set vertex attributes");
 
@@ -110,6 +142,43 @@ void dmp::Object::sortByMaterial(std::vector<Object *> & objs)
     }
 }
 
+dmp::ObjectConstants dmp::Object::getObjectConstants() const
+{
+  ObjectConstants retVal =
+    {
+      mM,
+      glm::mat4(glm::transpose(glm::inverse(glm::mat3(mM)))),
+      {}
+    };
+
+  for (size_t i = 0; i < mBindingMats.size(); ++i)
+    {
+      retVal.WB[i] = mBindingMats[i];
+    }
+
+  return retVal;
+}
+
+void dmp::Object::tellBindingMats(const std::vector<glm::mat4> & mats)
+{
+  clearBindingMats();
+
+  mBindingMats.reserve(mats.size());
+
+  for (const auto & curr : mats)
+    {
+      mBindingMats.push_back(curr);
+    }
+
+  mDirty = true;
+}
+
+void dmp::Object::clearBindingMats()
+{
+  mBindingMats.clear();
+  mBindingMats.resize(0);
+}
+
 // -----------------------------------------------------------------------------
 // Primitive shape constructor
 // -----------------------------------------------------------------------------
@@ -117,44 +186,60 @@ void dmp::Object::sortByMaterial(std::vector<Object *> & objs)
 static const dmp::ObjectVertex cubeVerts[] =
   {
     {
-      {-0.5f, -0.5f,  0.5f, 1.0f},
-      {-0.5f, -0.5f,  0.5f, 0.0f},
-      {} // TODO: tex coords
+      {-0.5f, -0.5f,  0.5f},
+      {-0.5f, -0.5f,  0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {0.5f, -0.5f,  0.5f, 1.0f},
-      {0.5f, -0.5f,  0.5f, 0.0f},
-      {} // TODO: tex coords
+      {0.5f, -0.5f,  0.5f},
+      {0.5f, -0.5f,  0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {0.5f,  0.5f,  0.5f, 1.0f},
-      {0.5f,  0.5f,  0.5f, 0.0f},
-      {} // TODO: tex coords
+      {0.5f,  0.5f,  0.5f},
+      {0.5f,  0.5f,  0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {-0.5f,  0.5f,  0.5f, 1.0f},
-      {-0.5f,  0.5f,  0.5f, 0.0f},
-      {} // TODO: tex coords
+      {-0.5f,  0.5f,  0.5f},
+      {-0.5f,  0.5f,  0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {-0.5f, -0.5f, -0.5f, 1.0f},
-      {-0.5f, -0.5f, -0.5f, 0.0f},
-      {} // TODO: tex coords
+      {-0.5f, -0.5f, -0.5f},
+      {-0.5f, -0.5f, -0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {0.5f, -0.5f, -0.5f, 1.0f},
-      {0.5f, -0.5f, -0.5f, 0.0f},
-      {} // TODO: tex coords
+      {0.5f, -0.5f, -0.5f},
+      {0.5f, -0.5f, -0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {0.5f,  0.5f, -0.5f, 1.0f},
-      {0.5f,  0.5f, -0.5f, 0.0f},
-      {} // TODO: tex coords
+      {0.5f,  0.5f, -0.5f},
+      {0.5f,  0.5f, -0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     },
     {
-      {-0.5f,  0.5f, -0.5f, 1.0f},
-      {-0.5f,  0.5f, -0.5f, 0.0f},
-      {} // TODO: tex coords
+      {-0.5f,  0.5f, -0.5f},
+      {-0.5f,  0.5f, -0.5f},
+      {}, // TODO: tex coords
+      {0.0f, 0.0f, 0.0f, 0.0f},
+      {-1, -1, -1, -1}
     }
   };
 
@@ -197,11 +282,12 @@ dmp::Object::Object(Shape shape, glm::vec4 min, glm::vec4 max,
       for (size_t i = 0; i < 8; ++i)
         {
           v.push_back({
-              M * cubeVerts[i].position,
-                normalM * cubeVerts[i].normal,
-                cubeVerts[i].texCoords
-                });
-
+              glm::vec3(M * glm::vec4(cubeVerts[i].position, 1.0f)),
+              glm::vec3(normalM * glm::vec4(cubeVerts[i].normal, 0.0f)),
+                cubeVerts[i].texCoords,
+                cubeVerts[i].weights,
+                cubeVerts[i].idxs
+            });
         }
 
       std::vector<GLuint> idxs;

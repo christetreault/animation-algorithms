@@ -12,6 +12,8 @@
 
 namespace dmp
 {
+  class Model;
+
   enum Shape
     {
       Cube
@@ -19,9 +21,12 @@ namespace dmp
 
   struct ObjectVertex
   {
-    glm::vec4 position;
-    glm::vec4 normal;
+    glm::vec3 position;
+    glm::vec3 normal;
     glm::vec2 texCoords;
+
+    glm::vec4 weights;
+    glm::ivec4 idxs;
   };
 
   struct ObjectConstants
@@ -29,9 +34,11 @@ namespace dmp
     glm::mat4 M;
     glm::mat4 normalM;
 
+    glm::mat4 WB[128];
+
     static size_t std140Size()
     {
-      return dmp::std140PadStruct((std140MatSize<float, 4, 4>() * 2));
+      return dmp::std140PadStruct((std140MatSize<float, 4, 4>() * (2 + 128)));
     }
 
     operator GLvoid *() {return (GLvoid *) this;}
@@ -56,6 +63,13 @@ namespace dmp
     }
 
     Object(std::vector<ObjectVertex> verts,
+           std::vector<GLuint> idxs,
+           GLenum format,
+           size_t matIdx,
+           size_t texIdx,
+           GLenum cullFace = GL_BACK);
+
+    Object(std::vector<ObjectVertex> verts,
            GLenum format,
            size_t matIdx,
            size_t texIdx);
@@ -63,8 +77,7 @@ namespace dmp
            std::vector<GLuint> idxs,
            GLenum format,
            size_t matIdx,
-           size_t texIdx,
-           GLenum cullFace = GL_BACK);
+           size_t texIdx);
 
     Object(Shape shape, glm::vec4 min, glm::vec4 max,
            size_t matIdx, size_t texIdx);
@@ -107,16 +120,9 @@ namespace dmp
       expectNoErrors("Draw object");
     }
 
-    ObjectConstants getObjectConstants() const
-    {
-      ObjectConstants retVal =
-        {
-          mM,
-          glm::mat4(glm::transpose(glm::inverse(glm::mat3(mM))))
-        };
-
-      return retVal;
-    }
+    ObjectConstants getObjectConstants() const;
+    void tellBindingMats(const std::vector<glm::mat4> & mats);
+    void clearBindingMats();
 
     glm::mat4 getM() const {return mM;}
 
@@ -156,6 +162,8 @@ namespace dmp
     GLsizei drawCount;
     bool mVisible = true;
     GLenum mCullFace = GL_BACK;
+
+    std::vector<glm::mat4> mBindingMats;
   };
 }
 

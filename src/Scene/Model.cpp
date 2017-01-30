@@ -1,6 +1,7 @@
 #include "Model.hpp"
 #include "Graph.hpp"
 #include <fstream>
+#include "Model/Skeleton.hpp"
 
 static bool fileExists(std::string path)
 {
@@ -27,16 +28,25 @@ dmp::Model::Model(const CommandLine & c,
 
   expect("either skin or skel file exists", skelExists || skinExists);
 
-  mRoot = std::make_unique<Branch>();
   if (skinExists)
     {
       mSkin = std::make_unique<Skin>(c.skinPath);
-      mSkin->insertInScene(mRoot.get(), objs, matIdx, texIdx);
+      mSkin->insertInScene(objs, matIdx, texIdx);
     }
   if (skelExists)
     {
       mSkeleton = std::make_unique<Skeleton>(c.skelPath);
-      mSkeleton->insertInScene(mRoot.get(), objs, matIdx, texIdx);
+
+      std::vector<glm::mat4> invBs;
+      if (skinExists) invBs = mSkin->askBindings();
+
+      else invBs.resize(0);
+
+      auto beg = invBs.begin();
+      auto end = invBs.end();
+
+      mSkeleton->makeBones(objs, matIdx, texIdx, beg, end);
+
       if (!skinExists) mSkeleton->show();
     }
 }
@@ -45,5 +55,24 @@ void dmp::Model::update(float deltaT,
                         glm::mat4 M,
                         bool dirty)
 {
-  mRoot->update(deltaT, M, dirty);
+   if (mSkeleton)
+     {
+       mSkeleton->update(deltaT, M, dirty);
+     }
+
+   if (mSkeleton && mSkin)
+     {
+       mSkin->update(deltaT, M, dirty);
+       auto Ms = mSkeleton->getMs();
+       mSkin->tellBindingMats(Ms);
+     }
+   else if (mSkeleton && !mSkin)
+     {
+
+     }
+
+   else
+     {
+       todo("implement support for skin without skeleton");
+     }
 }

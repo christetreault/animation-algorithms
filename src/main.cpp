@@ -5,6 +5,8 @@
 #include "util.hpp"
 #include "CommandLine.hpp"
 
+#include <glm/glm.hpp>
+
 static void libsInit()
 {
   expect("GLFW init failed!",

@@ -176,6 +176,7 @@ clean :
 	$(RM) $(SRC_DIR)/*~
 	$(RM) $(SRC_DIR)/Renderer/*~
 	$(RM) $(SRC_DIR)/Scene/*~
+	$(RM) $(SRC_DIR)/Scene/Model/*~
 	$(RM) $(RES_DIR)/*~
 	$(RM) $(SHADER_DIR)/*~
 

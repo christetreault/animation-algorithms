@@ -38,9 +38,11 @@ static void parseFloatMinMax(boost::tokenizer<boost::char_separator<char>>::iter
          iter == end || (*iter)[0] == '#');
 }
 
-std::function<bool(glm::mat4 &, float)> dmp::Skeleton::makeXformFn(dmp::Balljoint * bj)
+std::function<bool(glm::mat4 &, float)> dmp::Skeleton::makeXformFn(dmp::Balljoint * bj,
+                                                                   bool * dirty)
 {
   expect("balljoint pointer not null", bj);
+  expect("dirty point not null", dirty);
   return [=](glm::mat4 & M, float deltaT)
     {
       if (!bj->rotateDirty) return false;
@@ -61,6 +63,7 @@ std::function<bool(glm::mat4 &, float)> dmp::Skeleton::makeXformFn(dmp::Balljoin
                               glm::vec3(0.0f, 0.0f, 1.0f));
       M = rotz * roty * rotx;
       bj->rotateDirty = false;
+      (*dirty) = true;
       return true;
     };
 }
@@ -125,6 +128,10 @@ std::unique_ptr<dmp::Balljoint> dmp::Skeleton::parse(std::string currName,
               parseFloatTriple(iter, tend, retval->posex,
                                retval->posey,
                                retval->posez, "pose");
+
+              //retval->posex = 0.0f;
+              //retval->posey = 0.0f;
+              //retval->posez = 0.0f;
             }
           else if (*iter == "balljoint")
             {
@@ -141,28 +148,28 @@ std::unique_ptr<dmp::Balljoint> dmp::Skeleton::parse(std::string currName,
   impossible("mismatched { braces } in skel file!");
 }
 
-static void printSkel(dmp::Balljoint * bj, std::string padding)
-{
-  auto pad = padding + "  ";
-  std::cerr << padding << "Balljoint " << bj->name << " {" << std::endl;
-  std::cerr << pad << "offset = " << bj->offsetx
-            << " " << bj->offsety << " " << bj->offsetz << std::endl;
-  std::cerr << pad << "boxmin = " << bj->boxminx
-            << " " << bj->boxminy << " " << bj->boxminz << std::endl;
-  std::cerr << pad << "boxmax = " << bj->boxmaxx
-            << " " << bj->boxmaxy << " " << bj->boxmaxz << std::endl;
-  std::cerr << pad << "pose = " << bj->posex
-            << " " << bj->posey << " " << bj->posez << std::endl;
-  std::cerr << pad << "rotmin = " << bj->rotxmin
-            << " " << bj->rotymin << " " << bj->rotzmin << std::endl;
-  std::cerr << pad << "rotmax = " << bj->rotxmax
-            << " " << bj->rotymax << " " << bj->rotzmax << std::endl;
-  for (auto & curr : bj->children)
-    {
-      printSkel(curr.get(), pad);
-    }
-  std::cerr << padding << "}" << std::endl;
-}
+// static void printSkel(dmp::Balljoint * bj, std::string padding)
+// {
+//   auto pad = padding + "  ";
+//   std::cerr << padding << "Balljoint " << bj->name << " {" << std::endl;
+//   std::cerr << pad << "offset = " << bj->offsetx
+//             << " " << bj->offsety << " " << bj->offsetz << std::endl;
+//   std::cerr << pad << "boxmin = " << bj->boxminx
+//             << " " << bj->boxminy << " " << bj->boxminz << std::endl;
+//   std::cerr << pad << "boxmax = " << bj->boxmaxx
+//             << " " << bj->boxmaxy << " " << bj->boxmaxz << std::endl;
+//   std::cerr << pad << "pose = " << bj->posex
+//             << " " << bj->posey << " " << bj->posez << std::endl;
+//   std::cerr << pad << "rotmin = " << bj->rotxmin
+//             << " " << bj->rotymin << " " << bj->rotzmin << std::endl;
+//   std::cerr << pad << "rotmax = " << bj->rotxmax
+//             << " " << bj->rotymax << " " << bj->rotzmax << std::endl;
+//   for (auto & curr : bj->children)
+//     {
+//       printSkel(curr.get(), pad);
+//     }
+//   std::cerr << padding << "}" << std::endl;
+// }
 
 void dmp::Skeleton::initSkeleton(std::string skelPath)
 {
@@ -196,8 +203,8 @@ void dmp::Skeleton::initSkeleton(std::string skelPath)
       ++tokIter;
       auto lend = lines.end();
       auto name = *tokIter;
-      mRoot = parse(name, "balljoint",
-                    iter, lend);
+      mAST = parse(name, "balljoint",
+                   iter, lend);
     }
   else
     {
@@ -206,52 +213,95 @@ void dmp::Skeleton::initSkeleton(std::string skelPath)
   //ifDebug(printSkel(mRoot.get(), ""));
 }
 
-void dmp::Skeleton::insertInSceneImpl(dmp::Balljoint * bj,
-                                      dmp::Branch * graph,
-                                      std::vector<dmp::Object *> & objs,
-                                      std::vector<dmp::Object *> & objCache,
-                                      size_t matIdx,
-                                      size_t texIdx)
+dmp::Bone::Bone(Balljoint * bj,
+                bool * dirty,
+                std::vector<dmp::Object *> & objs,
+                std::vector<dmp::Object *> & objCache,
+                size_t matIdx,
+                size_t texIdx,
+                std::vector<glm::mat4>::iterator & invBBegin,
+                std::vector<glm::mat4>::iterator & invBEnd)
+{
+  initBone(bj, dirty, objs, objCache,
+           matIdx, texIdx, invBBegin, invBEnd);
+}
+
+void dmp::Bone::initBone(Balljoint * bj,
+                         bool * dirty,
+                         std::vector<dmp::Object *> & objs,
+                         std::vector<dmp::Object *> & objCache,
+                         size_t matIdx,
+                         size_t texIdx,
+                         std::vector<glm::mat4>::iterator & invBBegin,
+                         std::vector<glm::mat4>::iterator & invBEnd)
 {
   expect("bj not null", bj);
-  expect("graph not null", graph);
+  expect("dirty not null", dirty);
+
   glm::vec4 min = {bj->boxminx, bj->boxminy, bj->boxminz, 1.0f};
   glm::vec4 max = {bj->boxmaxx, bj->boxmaxy, bj->boxmaxz, 1.0f};
   glm::vec4 off = {bj->offsetx, bj->offsety, bj->offsetz, 0.0f};
-  Object obj(Cube, min, max, matIdx, texIdx);
-  obj.hide();
+  mObj = std::make_unique<Object>(Cube, min, max, matIdx, texIdx);
 
-  auto offset = graph->transform(glm::translate(glm::mat4(), glm::vec3(off)));
-  auto xform = offset->transform(Skeleton::makeXformFn(bj));
+  if (invBBegin != invBEnd) mObj->hide();
 
-  auto branch = xform->branch();
-  objs.push_back(branch->insert(obj));
-  objCache.push_back(objs.back());
+  objs.push_back(mObj.get());
+  objCache.push_back(mObj.get());
+
+  mOffset = glm::translate(glm::mat4(), glm::vec3(off));
+  mTransformFn = Skeleton::makeXformFn(bj, dirty);
+
+  expect("successfully created transform fn", mTransformFn);
+
+  if (invBBegin != invBEnd)
+    {
+      mInvB = *invBBegin;
+      ++invBBegin;
+    }
 
   for (auto & curr : bj->children)
     {
       expect("child not null", curr);
-      Skeleton::insertInSceneImpl(curr.get(),
-                                  branch,
-                                  objs,
-                                  objCache,
-                                  matIdx,
-                                  texIdx);
+
+      mChildren.emplace_back(std::make_unique<Bone>(curr.get(), dirty, objs,
+                                                    objCache, matIdx, texIdx,
+                                                    invBBegin, invBEnd));
     }
 }
 
-void dmp::Skeleton::insertInScene(Branch * graph,
-                                  std::vector<Object *> & objs,
-                                  size_t matIdx,
-                                  size_t texIdx)
+void dmp::Bone::update(float deltaT, glm::mat4 M, bool dirty,
+                std::vector<glm::mat4> & Ms)
 {
-  expect("root not null", mRoot);
-  Skeleton::insertInSceneImpl(mRoot.get(),
-                              graph,
-                              objs,
-                              mSkeletonObjects,
-                              matIdx,
-                              texIdx);
+  expect("transform fn valid", mTransformFn);
+  bool outDirty = mTransformFn(mRotation, deltaT) || dirty;
+  auto outM = M * mOffset * mRotation;
+  Ms.push_back(outM);
+
+  expect("mObj not null", mObj);
+
+  if (outDirty) mObj->setM(outM * mInvB);
+
+  for (auto & curr : mChildren)
+    {
+      curr->update(deltaT, outM, outDirty, Ms);
+    }
+}
+
+void dmp::Skeleton::makeBones(std::vector<Object *> & objs,
+                              size_t matIdx,
+                              size_t texIdx,
+                              std::vector<glm::mat4>::iterator & invBBegin,
+                              std::vector<glm::mat4>::iterator & invBEnd)
+{
+  expect("ast not null", mAST);
+  mRoot = std::make_unique<Bone>(mAST.get(),
+                                 &mDirty,
+                                 objs,
+                                 mSkeletonObjects,
+                                 matIdx,
+                                 texIdx,
+                                 invBBegin,
+                                 invBEnd);
 }
 
 void dmp::Skeleton::show()
@@ -268,4 +318,16 @@ void dmp::Skeleton::hide()
     {
       curr->hide();
     }
+}
+
+
+void dmp::Skeleton::update(float deltaT, glm::mat4 M, bool dirty)
+{
+  mMs.clear();
+  if (mRoot) mRoot->update(deltaT, M, dirty, mMs);
+}
+
+const std::vector<glm::mat4> & dmp::Skeleton::getMs() const
+{
+  return mMs;
 }

@@ -12,8 +12,8 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
 {
   graph = std::make_unique<Branch>();
 
-  auto model = graph->insert(Model(c, objects,
-                                   1, 0));
+  model = graph->insert(Model(c, objects,
+                              1, 0));
 
   Object::sortByMaterial(objects);
 

@@ -9,6 +9,7 @@
 #include "Object.hpp"
 #include "Camera.hpp"
 #include "Model.hpp"
+#include "Model/Skeleton.hpp"
 
 
 namespace dmp
@@ -54,8 +55,8 @@ namespace dmp
     Container(CameraPos & cam) : mValue(cam) {}
     Container(CameraFocus & cam) : mValue(cam) {}
     Container(Light & lit) : mValue(lit) {}
-    boost::variant<Object, Model, CameraPos &,
-                   CameraFocus &, Light &> mValue;
+    boost::variant<Object, Model,
+                   CameraPos &, CameraFocus &, Light &> mValue;
   private:
     void updateImpl(float deltaT, glm::mat4 M, bool dirty) override;
 

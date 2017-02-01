@@ -443,11 +443,14 @@ void dmp::Skin::insertInScene(std::vector<Object *> & objs,
       idxs.push_back((GLuint) curr);
     }
 
+  GLenum cullFace = GL_BACK;
+
   mObject = std::make_unique<Object>(verts,
                                      idxs,
                                      GL_TRIANGLES,
                                      matIdx,
-                                     texIdx);
+                                     texIdx,
+                                     cullFace);
   mObject->show();
 
   objs.push_back(mObject.get());

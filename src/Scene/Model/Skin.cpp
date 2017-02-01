@@ -443,27 +443,11 @@ void dmp::Skin::insertInScene(std::vector<Object *> & objs,
       idxs.push_back((GLuint) curr);
     }
 
-  GLenum cullFace = GL_BACK;
-
-  // -----------------------------------------------------------------------
-  // Extra yucky kludge for tube.skel since it randomly has a clockwise
-  // winding order
-  // -----------------------------------------------------------------------
-  if (mSkinData.filename.compare("res/models/tube.skin") == 0)
-    {
-      std::cerr << "tube.skin found. culling front faces here" << std::endl;
-      cullFace = GL_FRONT;
-    }
-  // -----------------------------------------------------------------------
-  // You can breathe now
-  // -----------------------------------------------------------------------
-
   mObject = std::make_unique<Object>(verts,
                                      idxs,
                                      GL_TRIANGLES,
                                      matIdx,
-                                     texIdx,
-                                     cullFace);
+                                     texIdx);
   mObject->show();
 
   objs.push_back(mObject.get());

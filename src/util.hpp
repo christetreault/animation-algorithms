@@ -10,6 +10,7 @@
 #include <GL/glew.h>
 #include <limits>
 #include <math.h>
+#include <map>
 
 // Exectue a statement IFF built in release mode (NDEBUG is definend)
 // define ifRelease
@@ -241,6 +242,54 @@ namespace dmp
   {
     return ((float) fabs((double)(lhs - rhs))
             < std::numeric_limits<float>::epsilon());
+  }
+
+  template <typename K, typename T>
+  void mapUnion(const std::map<K, T> & lhs,
+                const std::map<K, T> & rhs,
+                std::function<T(const T & l, const T & r)> conflictFn,
+                std::map<K, T> & resMap)
+  {
+    for (const auto & curr : lhs)
+      {
+        if (rhs.find(curr.first) == rhs.end())
+          {
+            // lhs element is not in rhs. Take it
+            resMap.insert(curr);
+          }
+        else
+          {
+            // rhs map has an element at the same key as this lhs
+            // element. Call the conflictFn
+            resMap.insert(std::make_pair(curr.first,
+                                         conflictFn(curr.second,
+                                                    rhs.at(curr.first))));
+          }
+      }
+
+    // At this point, resMap contains:
+    // - all elements of lhs that are not in rhs
+    // - all elements that are in both lhs and rhs, resolved by conflictFn
+
+    for (const auto & curr : rhs)
+      {
+
+        if (resMap.find(curr.first) != resMap.end())
+          {
+            // if resMap contains the current key, that means that this element
+            // had a corresponding element in lhs, and the conflictFn
+            // was called, skip this element
+            continue;
+          }
+        else
+          {
+            // If resMap does not contain the current key, that means that this
+            // key only appears in rhs. Take it.
+            resMap.insert(curr);
+          }
+      }
+
+    // Union should be complete at this point
   }
 }
 

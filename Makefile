@@ -2,7 +2,7 @@
 .PHONY := all build rebuild clean debug release
 OS_NAME := $(shell uname)
 
-PROG_NAME = skeleton
+PROG_NAME = skin
 SRC_DIR = src
 RES_DIR = res
 SHADER_DIR = $(RES_DIR)/shaders
@@ -37,7 +37,7 @@ PREFIX_RENDERER_CPP_FILES = $(addprefix Renderer/,$(RENDERER_CPP_FILES))
 # Scene Sources
 # ------------------------------------------------------------------------------
 
-SCENE_MODEL_CPP_FILES = Skeleton.cpp Skin.cpp
+SCENE_MODEL_CPP_FILES = Skeleton.cpp Skin.cpp Morph.cpp parsing.cpp
 PREFIX_SCENE_MODEL_CPP_FILES = $(addprefix Model/,$(SCENE_MODEL_CPP_FILES))
 
 SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skybox.cpp Model.cpp

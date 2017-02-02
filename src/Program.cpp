@@ -186,6 +186,22 @@ dmp::Program::Program(int width, int height,
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
                w, n, c, l};
 
+  // Only the first 10 morphs will be bound
+  size_t upperBound = file.morphPaths.size() < 10 ? file.morphPaths.size() : 10;
+
+  for (size_t i = 0; i <= upperBound ; ++i)
+    {
+      mKeybinds.insert(Keybind(mWindow,
+                               [&, i](Keybind &)
+                               {
+                                 expect("Model not null", mScene.model);
+                                 std::cerr << "Apply morph "
+                                           << i << std::endl;
+                                 mScene.model->applyMorph(i, mTimer.time());
+                               },
+                               GLFW_KEY_0 + ((int) i)));
+    }
+
   mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
                                          int key,
                                          int scancode,

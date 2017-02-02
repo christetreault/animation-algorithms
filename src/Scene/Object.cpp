@@ -15,6 +15,7 @@ dmp::Object::Object(std::vector<ObjectVertex> verts,
   mPrimFormat = format;
   mMaterialIdx = matIdx;
   mTextureIdx = texIdx;
+  mNumVerts = verts.size();
 
   initObject(&verts, nullptr);
 }
@@ -24,13 +25,14 @@ dmp::Object::Object(std::vector<ObjectVertex> verts,
                     GLenum format,
                     size_t matIdx,
                     size_t texIdx,
-                    GLenum cullFace)
+                    GLenum drawMode)
 {
   mHasIndices = true;
   mPrimFormat = format;
   mMaterialIdx = matIdx;
   mTextureIdx = texIdx;
-  mCullFace = cullFace;
+  mDrawMode = drawMode;
+  mNumVerts = verts.size();
   initObject(&verts, &idxs);
 }
 
@@ -44,6 +46,7 @@ dmp::Object::Object(std::vector<ObjectVertex> verts,
   mPrimFormat = format;
   mMaterialIdx = matIdx;
   mTextureIdx = texIdx;
+  mNumVerts = verts.size();
   initObject(&verts, &idxs);
 }
 
@@ -62,7 +65,7 @@ void dmp::Object::initObject(std::vector<ObjectVertex> * verts,
   glBufferData(GL_ARRAY_BUFFER,
                verts->size() * sizeof(ObjectVertex),
                verts->data(),
-               GL_STATIC_DRAW);
+               mDrawMode);
 
   drawCount = (GLsizei) verts->size();
 
@@ -74,7 +77,7 @@ void dmp::Object::initObject(std::vector<ObjectVertex> * verts,
       glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                    idxs->size() * sizeof(GLuint),
                    idxs->data(),
-                   GL_STATIC_DRAW);
+                   mDrawMode);
 
       drawCount = (GLsizei) idxs->size();
 
@@ -300,4 +303,22 @@ dmp::Object::Object(Shape shape, glm::vec4 min, glm::vec4 max,
       initObject(&v, &idxs);
       break;
     }
+}
+
+void dmp::Object::updateVertices(std::function<void(ObjectVertex * data,
+                                                    size_t numElems)> updateFn)
+{
+  glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+  auto buf = glMapBufferRange(GL_ARRAY_BUFFER,
+                              0,
+                              mNumVerts * sizeof(ObjectVertex),
+                              GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+  expectNoErrors("Map the VBO");
+  expect("buffer not null", buf);
+
+  updateFn((ObjectVertex *) buf, mNumVerts);
+  expectNoErrors("call updateFn on buf");
+
+  glUnmapBuffer(GL_ARRAY_BUFFER);
+  expectNoErrors("Unmap the buffer");
 }

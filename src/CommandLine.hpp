@@ -2,6 +2,7 @@
 #define DMP_COMMANDLINE_HPP
 
 #include <string>
+#include <vector>
 
 namespace dmp
 {
@@ -10,7 +11,7 @@ namespace dmp
   public:
     std::string skinPath;
     std::string skelPath;
-    std::string morphPath;
+    std::vector<std::string> morphPaths;
 
     CommandLine(int argc, char ** argv);
   };

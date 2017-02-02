@@ -16,5 +16,22 @@ dmp::CommandLine::CommandLine(int argc, char ** argv)
 
   skinPath = std::string(modelDir) + "/" + name + ".skin";
   skelPath = std::string(modelDir) + "/" + name + ".skel";
-  morphPath = std::string(modelDir) + "/" + name + ".morph";
+
+  if (argc > 2)
+    {
+      int morphCount = stoi(std::string(argv[2]));
+      morphPaths.reserve((size_t) morphCount);
+      for (size_t i = 0; i < (size_t) morphCount; ++i)
+        {
+          morphPaths.push_back(std::string(modelDir)
+                               + "/"
+                               + name
+                               + std::to_string(i + 1)
+                               + ".morph");
+        }
+    }
+  else
+    {
+      morphPaths = {};
+    }
 }

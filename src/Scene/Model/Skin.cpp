@@ -5,6 +5,8 @@
 #include "../../util.hpp"
 #include "../Object.hpp"
 #include "../Graph.hpp"
+#include "Morph.hpp"
+#include "parsing.hpp"
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -21,57 +23,6 @@ static const char * tokTexcoords = "texcoords";
 static const char * tokMaterial = "material";
 static const char * tokTexture = "texture";
 static const char * tokOpenBrace = "{";
-static const char * tokCloseBrace = "}";
-
-static void parseVec3(float & x, float & y, float & z,
-                      TokenIterator & iter,
-                      TokenIterator & end)
-{
-  x = stof(*iter);
-  safeIncr(iter, end); // advance to y
-  y = stof(*iter);
-  safeIncr(iter, end); // advance to z
-  z = stof(*iter);
-  safeIncr(iter, end); // advance to x or }
-}
-
-static void parseVec2(float & x, float & y,
-                      TokenIterator & iter,
-                      TokenIterator & end)
-{
-  x = stof(*iter);
-  safeIncr(iter, end); // advance to y
-  y = 1.0f - stof(*iter);
-  safeIncr(iter, end); // advance to x or }
-}
-
-static void parseField(dmp::SkinData & data,
-                       TokenIterator & iter,
-                       TokenIterator & end,
-                       const char * fieldName,
-                       std::function<void(dmp::SkinData &,
-                                          TokenIterator &,
-                                          TokenIterator &)> tagFn,
-                       std::function<void(dmp::SkinData &,
-                                          TokenIterator &,
-                                          TokenIterator &)> parseFn)
-{
-  expect("iterator not equal to end", iter != end);
-
-  expect("parsing correct field", *iter == fieldName);
-  safeIncr(iter, end); // swallow fieldName
-  tagFn(data, iter, end);
-  safeIncr(iter, end); // advance to {
-  expect("field tag followed by opening brace", *iter == tokOpenBrace);
-  safeIncr(iter, end); // swallow {
-
-  while (*iter != tokCloseBrace)
-    {
-      parseFn(data, iter, end);
-    }
-
-  safeIncr(iter, end); // swallow }
-}
 
 static void parsePositions(dmp::SkinData & data,
                            TokenIterator & iter,
@@ -90,11 +41,11 @@ static void parsePositions(dmp::SkinData & data,
                TokenIterator & end)
     {
       float x, y, z;
-      parseVec3(x, y, z, iter, end);
+      dmp::parseVec3(x, y, z, iter, end);
       data.verts.push_back({x, y, z});
     };
 
-  parseField(data, iter, end, tokPositions, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokPositions, t, f);
 }
 
 static void parseNormals(dmp::SkinData & data,
@@ -114,11 +65,11 @@ static void parseNormals(dmp::SkinData & data,
                TokenIterator & end)
     {
       float x, y, z;
-      parseVec3(x, y, z, iter, end);
+      dmp::parseVec3(x, y, z, iter, end);
       data.normals.push_back({x, y, z});
     };
 
-  parseField(data, iter, end, tokNormals, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokNormals, t, f);
 }
 
 static void parseSkinWeights(dmp::SkinData & data,
@@ -154,7 +105,7 @@ static void parseSkinWeights(dmp::SkinData & data,
       data.weights.push_back(w);
     };
 
-  parseField(data, iter, end, tokSkinweights, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokSkinweights, t, f);
 }
 
 static void parseIdxs(dmp::SkinData & data,
@@ -178,7 +129,7 @@ static void parseIdxs(dmp::SkinData & data,
       safeIncr(iter, end); // advance to next index or }
     };
 
-  parseField(data, iter, end, tokTriangles, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokTriangles, t, f);
 }
 
 static void parseBindings(dmp::SkinData & data,
@@ -203,10 +154,10 @@ static void parseBindings(dmp::SkinData & data,
       safeIncr(iter, end);
 
       float ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz;
-      parseVec3(ax, ay, az, iter, end);
-      parseVec3(bx, by, bz, iter, end);
-      parseVec3(cx, cy, cz, iter, end);
-      parseVec3(dx, dy, dz, iter, end);
+      dmp::parseVec3(ax, ay, az, iter, end);
+      dmp::parseVec3(bx, by, bz, iter, end);
+      dmp::parseVec3(cx, cy, cz, iter, end);
+      dmp::parseVec3(dx, dy, dz, iter, end);
 
 
       glm::mat4 B =
@@ -231,7 +182,7 @@ static void parseBindings(dmp::SkinData & data,
       safeIncr(iter, end); // advance to next matrix or }
     };
 
-  parseField(data, iter, end, tokBindings, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokBindings, t, f);
 }
 
 static void parseTexCoords(dmp::SkinData & data,
@@ -251,11 +202,11 @@ static void parseTexCoords(dmp::SkinData & data,
                TokenIterator & end)
     {
       float x, y;
-      parseVec2(x, y, iter, end);
-      data.texCoords.push_back({x, y});
+      dmp::parseVec2(x, y, iter, end);
+      data.texCoords.push_back({x, 1.0f - y});
     };
 
-  parseField(data, iter, end, tokTexcoords, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokTexcoords, t, f);
 }
 
 static void parseTexFile(dmp::SkinData & data,
@@ -279,7 +230,7 @@ static void parseTexFile(dmp::SkinData & data,
       safeIncr(iter, end); // advance to }
     };
 
-  parseField(data, iter, end, tokMaterial, t, f);
+  dmp::parseField<dmp::SkinData>(data, iter, end, tokMaterial, t, f);
 }
 
 // -----------------------------------------------------------------------------
@@ -316,24 +267,15 @@ static void printSkin(const dmp::SkinData & data)
     }
 }
 
-void dmp::Skin::initSkin(std::string skinPath)
+void dmp::Skin::initSkin(const std::string & skinPath)
 {
   mSkinData = {};
   mSkinData.filename = skinPath;
-  std::cerr << skinPath << std::endl;
 
-  std::ifstream fin(skinPath, std::ios::in);
-  fin.seekg(0, std::ios_base::end);
-  size_t endPos = fin.tellg();
-  fin.seekg(0, std::ios_base::beg);
+  std::string dataStr;
+  readFile(skinPath, dataStr);
 
-  std::vector<char> data(endPos);
-  fin.read(data.data(), endPos);
-  fin.close();
-
-  std::string dataStr(data.data());
-
-  char_separator<char> sep(" \t\r\n");
+  auto sep = whitespaceSeparator;
   tokenizer<char_separator<char>> tokens(dataStr, sep);
 
   auto iter = tokens.begin();
@@ -443,14 +385,12 @@ void dmp::Skin::insertInScene(std::vector<Object *> & objs,
       idxs.push_back((GLuint) curr);
     }
 
-  GLenum cullFace = GL_BACK;
-
   mObject = std::make_unique<Object>(verts,
                                      idxs,
                                      GL_TRIANGLES,
                                      matIdx,
                                      texIdx,
-                                     cullFace);
+                                     GL_DYNAMIC_DRAW);
   mObject->show();
 
   objs.push_back(mObject.get());
@@ -489,4 +429,23 @@ void dmp::Skin::tellBindingMats(const std::vector<glm::mat4> & m)
     }
 
   mObject->tellBindingMats(outToObj);
+}
+
+void dmp::Skin::applyMorph(const Morph & morph)
+{
+  auto f = [&morph](ObjectVertex * data,
+                    size_t numElems)
+    {
+      for (const auto & curr : morph.verts)
+        {
+          expect("morph index in range", curr.first < numElems);
+          auto normal = morph.normals.find(curr.first);
+          expect("Morph has correspoinding normal",
+                 normal != morph.normals.end());
+          data[curr.first].position = curr.second;
+          data[curr.first].normal = morph.normals.at(curr.first);
+        }
+    };
+
+  mObject->updateVertices(f);
 }

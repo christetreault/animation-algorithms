@@ -6,6 +6,7 @@
 #include "Object.hpp"
 #include "Model/Skeleton.hpp"
 #include "Model/Skin.hpp"
+#include "Model/Morph.hpp"
 
 namespace dmp
 {
@@ -51,10 +52,19 @@ namespace dmp
       return mSkin->askTexturePath();
     }
 
+    void applyMorph(size_t index, float time);
+
   private:
     bool mDirty = true;
     std::unique_ptr<Skeleton> mSkeleton;
     std::unique_ptr<Skin> mSkin;
+    std::vector<Morph> mMorphs;
+
+    static constexpr const float period = 0.5f;
+    bool mMorphLerpInProgress = false;
+    float mCurrT = 0.0f;
+    size_t mMorphOld = 0;
+    size_t mMorphNew = 0;
   };
 }
 

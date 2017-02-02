@@ -49,6 +49,28 @@ dmp::Model::Model(const CommandLine & c,
 
       if (!skinExists) mSkeleton->show();
     }
+
+  // Morphs
+
+  if (c.morphPaths.size() == 0 || !skinExists) return;
+
+  mMorphs.resize(1); // we want the null morph to be a location 0.
+                     // We will overwrite this
+  mMorphs.reserve(c.morphPaths.size() + 1);
+  for (const auto & curr : c.morphPaths)
+    {
+      mMorphs.emplace_back(curr);
+    }
+
+  // TODO: this is a bit gross
+  auto morphs = mMorphs.data();
+  auto length = mMorphs.size();
+  ++morphs;
+  --length;
+  mMorphs[0].initNullMorph(mSkin->askVerts(),
+                           mSkin->askNormals(),
+                           morphs,
+                           length);
 }
 
 void dmp::Model::update(float deltaT,
@@ -75,4 +97,50 @@ void dmp::Model::update(float deltaT,
      {
        todo("implement support for skin without skeleton");
      }
+
+   if (mMorphs.size() > 0)
+     {
+       if (mMorphLerpInProgress)
+         {
+           mCurrT += deltaT;
+           auto l = mCurrT / period;
+           if (mCurrT >= period)
+             {
+               mMorphLerpInProgress = false;
+               mSkin->applyMorph(mMorphs[mMorphNew]);
+             }
+           else if (l < 0.5f)
+             { // transition old -> null
+               mSkin->applyMorph(Morph(mMorphs[mMorphOld],
+                                       mMorphs[0],
+                                       l / 0.5f));
+             }
+           else
+             { // transition null -> new
+               mSkin->applyMorph(Morph(mMorphs[0],
+                                       mMorphs[mMorphNew],
+                                       (l - 0.5f) / 0.5f));
+             }
+         }
+     }
+}
+
+void dmp::Model::applyMorph(size_t index, float time)
+{
+  expect("has skin", mSkin);
+  expect("mas morphs", mMorphs.size() > 0);
+  expect("index in range", mMorphs.size() > index);
+
+  if (mMorphLerpInProgress)
+    {
+      ifDebug(std::cerr << "morph in progress, ignoring..." << std::endl);
+      return;
+    }
+  else
+    {
+      mMorphLerpInProgress = true;
+      mCurrT = 0.0f;
+      mMorphOld = mMorphNew;
+      mMorphNew = index;
+    }
 }

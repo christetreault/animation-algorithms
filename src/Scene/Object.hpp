@@ -67,7 +67,7 @@ namespace dmp
            GLenum format,
            size_t matIdx,
            size_t texIdx,
-           GLenum cullFace = GL_BACK);
+           GLenum drawMode);
 
     Object(std::vector<ObjectVertex> verts,
            GLenum format,
@@ -102,7 +102,6 @@ namespace dmp
     {
       expect("Object valid", mValid);
       if (!mVisible) return;
-      glCullFace(mCullFace);
       if (mHasIndices)
         {
           glDrawElements(mPrimFormat,
@@ -143,6 +142,13 @@ namespace dmp
       mVisible = false;
     }
 
+    // memory maps the VBO, calls updateFn and then unmaps the VBO
+    // - data is a pointer to the data buffer
+    // - numElems is the number of elements in the mapped buffer
+    // CONTRACT: drawType must be dynamic draw
+    void updateVertices(std::function<void(ObjectVertex * data,
+                                           size_t numElems)> updateFn);
+
   private:
     void initObject(std::vector<ObjectVertex> * verts,
                     std::vector<GLuint> * idxs);
@@ -158,12 +164,14 @@ namespace dmp
     bool mValid = false;
     size_t mMaterialIdx;
     size_t mTextureIdx;
+    size_t mNumVerts;
 
     GLsizei drawCount;
     bool mVisible = true;
-    GLenum mCullFace = GL_BACK;
 
     std::vector<glm::mat4> mBindingMats;
+
+    GLenum mDrawMode = GL_STATIC_DRAW;
   };
 }
 

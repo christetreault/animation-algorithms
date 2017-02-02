@@ -14,6 +14,7 @@ namespace dmp
   class Branch;
   class Object;
   class Model;
+  class Morph;
 
   struct SkinWeight
   {
@@ -43,7 +44,7 @@ namespace dmp
     Skin(Skin &&) = default;
     Skin & operator=(Skin &&) = default;
 
-    Skin(std::string skinPath) {initSkin(skinPath);}
+    Skin(const std::string & skinPath) {initSkin(skinPath);}
 
     void insertInScene(std::vector<Object *> & objs,
                        size_t matIdx,
@@ -54,14 +55,23 @@ namespace dmp
     {
       return mSkinData.invBindings;
     }
+    const std::vector<glm::vec3> & askVerts() const
+    {
+      return mSkinData.verts;
+    }
+    const std::vector<glm::vec3> & askNormals() const
+    {
+      return mSkinData.normals;
+    }
 
     void tellBindingMats(const std::vector<glm::mat4> & boneM);
 
     void update(float deltaT, glm::mat4 M, bool dirty);
     void hide();
     void show();
+    void applyMorph(const Morph & morph);
   private:
-    void initSkin(std::string skinPath);
+    void initSkin(const std::string & skinPath);
 
     SkinData mSkinData;
     bool mIsTextured = false;

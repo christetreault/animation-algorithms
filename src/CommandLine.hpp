@@ -12,6 +12,7 @@ namespace dmp
     std::string skinPath;
     std::string skelPath;
     std::vector<std::string> morphPaths;
+    std::string animPath;
 
     CommandLine(int argc, char ** argv);
   };

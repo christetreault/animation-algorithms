@@ -11,6 +11,7 @@
 #include <limits>
 #include <math.h>
 #include <map>
+#include <boost/assert.hpp>
 
 // Exectue a statement IFF built in release mode (NDEBUG is definend)
 // define ifRelease
@@ -108,6 +109,22 @@ namespace dmp
                          + file
                          + "\nAt Line: "
                          + std::to_string(line));
+    }
+
+    InvariantViolation(const std::vector<InvariantViolation> & vs)
+    {
+      mMsg = "Multiple Violations!\n";
+
+      for (const auto & curr : vs)
+        {
+          mMsg += curr.mMsg + "\n";
+        }
+    }
+
+    InvariantViolation(const std::exception & e)
+    {
+      mMsg = "Rethrowing std::exception: "
+        + std::string(e.what());
     }
 
     InvariantViolation(std::string msg)
@@ -290,6 +307,21 @@ namespace dmp
       }
 
     // Union should be complete at this point
+  }
+}
+
+#define BOOST_ENABLE_ASSERT_HANDLER
+namespace boost
+{
+  inline void assertion_failed(char const * expr,
+                        char const * function,
+                        char const * file,
+                        long line)
+  {
+    std::string msg = std::string("Boost assert failure! Expression: "
+                                  + std::string(expr)
+                                  + " Function: " + std::string(function));
+    throw dmp::InvariantViolation(msg, file, (int) line);
   }
 }
 

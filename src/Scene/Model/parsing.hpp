@@ -3,6 +3,7 @@
 
 #include <boost/tokenizer.hpp>
 #include <functional>
+#include <list>
 #include "../../util.hpp"
 
 namespace dmp
@@ -21,6 +22,10 @@ namespace dmp
   void parseInt(int & i,
                 TokenIterator & iter,
                 TokenIterator & end);
+
+  void parseString(std::string & s,
+                   TokenIterator & iter,
+                   TokenIterator & end);
 
   template <typename T>
   void parseField(T & data,
@@ -52,6 +57,36 @@ namespace dmp
 
   safeIncr(iter, end); // swallow }
   }
+
+  // Try to parse using p. If fail, swallow error and do not consume input
+  void tryParse(std::function<void(TokenIterator &, TokenIterator &)> p,
+                TokenIterator & beg,
+                TokenIterator & end);
+
+  // Try parsers until one either consumes input or throws
+  void orParse(std::list<std::function<void(TokenIterator &,
+                                            TokenIterator &)>> ps,
+               TokenIterator & beg,
+               TokenIterator & end);
+
+  // Try all parsers until they either all succeed, or one throws
+  void allParse(std::list<std::function<void(TokenIterator &,
+                                             TokenIterator &)>> ps,
+               TokenIterator & beg,
+                TokenIterator & end);
+
+  // Try all parsers until no more succeed. Return list contains failures
+  std::list<std::function<void(TokenIterator &,
+                               TokenIterator &)>>
+  someParse(std::list<std::function<void(TokenIterator &,
+                                TokenIterator &)>> ps,
+            TokenIterator & beg,
+            TokenIterator & end);
+
+  void parseToken(std::string & out,
+                  const std::string & toMatch,
+                  TokenIterator & beg,
+                  TokenIterator & end);
 
   // read the file at path into buffer.
   // contents of buffer will be clobbered.

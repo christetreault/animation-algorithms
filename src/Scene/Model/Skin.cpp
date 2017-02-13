@@ -237,7 +237,7 @@ static void parseTexFile(dmp::SkinData & data,
 // End of parse functions
 // -----------------------------------------------------------------------------
 
-static void printSkin(const dmp::SkinData & data)
+/*static void printSkin(const dmp::SkinData & data)
 {
   for (size_t i = 0; i < data.idxs.size(); ++i)
     {
@@ -265,7 +265,7 @@ static void printSkin(const dmp::SkinData & data)
     {
       std::cerr << glm::to_string(curr) << std::endl;
     }
-}
+    }*/
 
 void dmp::Skin::initSkin(const std::string & skinPath)
 {

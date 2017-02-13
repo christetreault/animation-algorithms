@@ -7,22 +7,11 @@
 #include "Model/Skeleton.hpp"
 #include "Model/Skin.hpp"
 #include "Model/Morph.hpp"
+#include "Model/Animation.hpp"
 
 namespace dmp
 {
   class Branch;
-
-  struct ModelConstants
-  {
-    glm::mat4 WB[128];
-
-    static size_t std140Size()
-    {
-      return dmp::std140PadStruct((std140MatArraySize<float, 4, 4, 128>()));
-    }
-
-    operator GLvoid *() {return (GLvoid *) this;}
-  };
 
   class Model
   {
@@ -59,12 +48,15 @@ namespace dmp
     std::unique_ptr<Skeleton> mSkeleton;
     std::unique_ptr<Skin> mSkin;
     std::vector<Morph> mMorphs;
+    std::unique_ptr<Animation> mAnimation;
 
     static constexpr const float period = 0.5f;
     bool mMorphLerpInProgress = false;
     float mCurrT = 0.0f;
     size_t mMorphOld = 0;
     size_t mMorphNew = 0;
+
+    float mTimeElapsed = 0.0f;
   };
 }
 

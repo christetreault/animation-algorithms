@@ -37,7 +37,8 @@ PREFIX_RENDERER_CPP_FILES = $(addprefix Renderer/,$(RENDERER_CPP_FILES))
 # Scene Sources
 # ------------------------------------------------------------------------------
 
-SCENE_MODEL_CPP_FILES = Skeleton.cpp Skin.cpp Morph.cpp parsing.cpp
+SCENE_MODEL_CPP_FILES = Skeleton.cpp Skin.cpp Morph.cpp parsing.cpp \
+Animation.cpp
 PREFIX_SCENE_MODEL_CPP_FILES = $(addprefix Model/,$(SCENE_MODEL_CPP_FILES))
 
 SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skybox.cpp Model.cpp
@@ -111,58 +112,6 @@ build/%.o : src/Scene/%.cpp
 
 build/%.o : src/Scene/Model/%.cpp
 	  $(call compile,$<,$@)
-
-# main.o : $(SRC_DIR)/main.cpp
-# 	 $(call compile,main.cpp)
-
-# Window.o : $(SRC_DIR)/Window.cpp $(SRC_DIR)/Window.hpp
-# 	   $(call compile,Window.cpp)
-
-# Renderer.o : $(SRC_DIR)/Renderer.cpp $(SRC_DIR)/Renderer.hpp
-# 	     $(call compile,Renderer.cpp)
-
-# Shader.o : $(SRC_DIR)/Renderer/Shader.cpp $(SRC_DIR)/Renderer/Shader.hpp
-# 	   $(call compile,Renderer/Shader.cpp)
-
-# Program.o : $(SRC_DIR)/Program.cpp $(SRC_DIR)/Program.hpp
-# 	    $(call compile,Program.cpp)
-
-# Timer.o : $(SRC_DIR)/Timer.cpp $(SRC_DIR)/Timer.hpp
-# 	  $(call compile,Timer.cpp)
-
-# Object.o : $(SRC_DIR)/Scene/Object.cpp $(SRC_DIR)/Scene/Object.hpp
-# 	   $(call compile,Scene/Object.cpp)
-
-# Scene.o : $(SRC_DIR)/Scene.cpp $(SRC_DIR)/Scene.hpp
-# 	  $(call compile,Scene.cpp)
-
-# UniformBuffer.o : $(SRC_DIR)/Renderer/UniformBuffer.cpp \
-# 		  $(SRC_DIR)/Renderer/UniformBuffer.hpp
-# 		  $(call compile,Renderer/UniformBuffer.cpp)
-
-# Graph.o : $(SRC_DIR)/Scene/Graph.cpp $(SRC_DIR)/Scene/Graph.hpp
-# 	  $(call compile,Scene/Graph.cpp)
-
-# Pass.o : $(SRC_DIR)/Renderer/Pass.cpp $(SRC_DIR)/Renderer/Pass.hpp
-# 	 $(call compile,Renderer/Pass.cpp)
-
-# Texture.o : $(SRC_DIR)/Renderer/Texture.cpp $(SRC_DIR)/Renderer/Texture.hpp
-# 	    $(call compile,Renderer/Texture.cpp)
-
-# Camera.o : $(SRC_DIR)/Scene/Camera.cpp $(SRC_DIR)/Scene/Camera.hpp
-# 	   $(call compile,Scene/Camera.cpp)
-
-# Skybox.o : $(SRC_DIR)/Scene/Skybox.cpp $(SRC_DIR)/Scene/Skybox.hpp
-# 	   $(call compile,Scene/Skybox.cpp)
-
-# Skeleton.o : $(SRC_DIR)/Scene/Skeleton.cpp $(SRC_DIR)/Scene/Skeleton.hpp
-# 	     $(call compile,Scene/Skeleton.cpp)
-
-# DOFWindow.o : $(SRC_DIR)/DOFWindow.cpp $(SRC_DIR)/DOFWindow.hpp
-# 	      $(call compile,DOFWindow.cpp)
-
-# commandLine.o : $(SRC_DIR)/commandLine.cpp $(SRC_DIR)/commandLine.hpp
-# 		$(call compile,commandLine.cpp)
 
 rebuild : clean build
 

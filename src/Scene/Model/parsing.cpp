@@ -56,6 +56,22 @@ void dmp::parseInt(int & i,
     }
 }
 
+void dmp::parseFloat(float & f,
+                     TokenIterator & iter,
+                     TokenIterator & end)
+{
+  try
+    {
+      expect("iter not end", iter != end);
+      f = stof(*iter);
+      safeIncr(iter, end);
+    }
+  catch (std::invalid_argument & e)
+    {
+      throw InvariantViolation(e);
+    }
+}
+
 void dmp::parseString(std::string & s,
                       TokenIterator & iter,
                       TokenIterator & end)
@@ -93,6 +109,7 @@ void dmp::tryParse(std::function<void(TokenIterator &, TokenIterator &)> p,
     }
   catch (InvariantViolation & e)
     {
+      ifDebug(std::cerr << "tryParse caught a failure: " << e.what() << std::endl);
       return; // if unsuccessful, do not consume input
     }
 }
@@ -108,6 +125,7 @@ void dmp::orParse(std::list<std::function<void(TokenIterator &,
       curr(beg, end);
       if (bc != beg) return;
     }
+  unreachable("A parser succeeded");
 }
 
 void dmp::allParse(std::list<std::function<void(TokenIterator &,
@@ -130,8 +148,8 @@ void dmp::allParse(std::list<std::function<void(TokenIterator &,
               break;
             }
         }
-      expect("All parsers succeed", ps.empty())
-        }
+    }
+  expect("All parsers succeed", ps.empty());
 }
 
 std::list<std::function<void(dmp::TokenIterator &,
@@ -163,6 +181,22 @@ dmp::someParse(std::list<std::function<void(TokenIterator &,
       break; // no more parsers will succeed
     }
   return ps;
+}
+
+void dmp::manyParse(std::function<void(TokenIterator &, TokenIterator &)> p,
+                    TokenIterator & beg,
+                    TokenIterator & end)
+{
+  auto begBackup = beg;
+  while (beg != end)
+    {
+      p(begBackup, end);
+      if (beg == begBackup)
+        {
+          return;
+        }
+      else beg = begBackup;
+    }
 }
 
 // -----------------------------------------------------------------------------

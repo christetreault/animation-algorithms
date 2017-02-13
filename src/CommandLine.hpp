@@ -15,6 +15,11 @@ namespace dmp
     std::string animPath;
 
     CommandLine(int argc, char ** argv);
+
+    bool hasSkin() const {return skinPath != "";}
+    bool hasSkel() const {return skelPath != "";}
+    bool hasMorphs() const {return morphPaths.size() > 0;}
+    bool hasAnim() const {return animPath != "";}
   };
 }
 

@@ -255,10 +255,11 @@ namespace dmp
     throw dmp::InvariantViolation(msg);
   }
 
-  inline bool roughEq(float lhs, float rhs)
+  inline bool roughEq(float lhs, float rhs,
+                      float epsilon = std::numeric_limits<float>::epsilon())
   {
     return ((float) fabs((double)(lhs - rhs))
-            < std::numeric_limits<float>::epsilon());
+            < epsilon);
   }
 
   template <typename K, typename T>

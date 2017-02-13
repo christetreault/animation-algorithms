@@ -23,18 +23,20 @@ dmp::Model::Model(const CommandLine & c,
                   size_t matIdx,
                   size_t texIdx)
 {
-  bool skelExists = fileExists(c.skelPath);
-  bool skinExists = fileExists(c.skinPath);
+  bool skelExists = c.hasSkel();
+  bool skinExists = c.hasSkin();
 
   expect("either skin or skel file exists", skelExists || skinExists);
 
   if (skinExists)
     {
+      expect("given skin file actually exists", fileExists(c.skinPath));
       mSkin = std::make_unique<Skin>(c.skinPath);
       mSkin->insertInScene(objs, matIdx, texIdx);
     }
   if (skelExists)
     {
+      expect("given skel file actually exists", fileExists(c.skelPath));
       mSkeleton = std::make_unique<Skeleton>(c.skelPath);
 
       std::vector<glm::mat4> invBs;
@@ -50,9 +52,19 @@ dmp::Model::Model(const CommandLine & c,
       if (!skinExists) mSkeleton->show();
     }
 
+  // Animation
+
+  bool animExists = c.hasAnim();
+
+  if (animExists)
+    {
+      expect("given anim file actually exists", fileExists(c.animPath));
+      mAnimation = std::make_unique<Animation>(c.animPath);
+    }
+
   // Morphs
 
-  if (c.morphPaths.size() == 0 || !skinExists) return;
+  if (!c.hasMorphs() || !skinExists) return;
 
   mMorphs.resize(1); // we want the null morph to be a location 0.
                      // We will overwrite this
@@ -77,52 +89,58 @@ void dmp::Model::update(float deltaT,
                         glm::mat4 M,
                         bool dirty)
 {
-   if (mSkeleton)
-     {
-       mSkeleton->update(deltaT, M, dirty);
-     }
+  mTimeElapsed += deltaT;
+  if (mSkeleton)
+    {
+      if (mAnimation)
+        {
+          auto thePose = mAnimation->evaluate(mTimeElapsed);
+          mSkeleton->applyPose(thePose);
+        }
+      mSkeleton->update(deltaT, M, dirty);
+    }
 
-   if (mSkeleton && mSkin)
-     {
-       mSkin->update(deltaT, M, dirty);
-       auto Ms = mSkeleton->getMs();
-       mSkin->tellBindingMats(Ms);
-     }
-   else if (mSkeleton && !mSkin)
-     {
+  if (mSkeleton && mSkin)
+    {
+      mSkin->update(deltaT, M, dirty);
+      auto Ms = mSkeleton->getMs();
+      mSkin->tellBindingMats(Ms);
+    }
+  else if (mSkeleton && !mSkin)
+    {
 
-     }
+    }
 
-   else
-     {
-       todo("implement support for skin without skeleton");
-     }
+  else
+    {
+      todo("implement support for skin without skeleton");
+    }
 
-   if (mMorphs.size() > 0)
-     {
-       if (mMorphLerpInProgress)
-         {
-           mCurrT += deltaT;
-           auto l = mCurrT / period;
-           if (mCurrT >= period)
-             {
-               mMorphLerpInProgress = false;
-               mSkin->applyMorph(mMorphs[mMorphNew]);
-             }
-           else if (l < 0.5f)
-             { // transition old -> null
-               mSkin->applyMorph(Morph(mMorphs[mMorphOld],
-                                       mMorphs[0],
-                                       l / 0.5f));
-             }
-           else
-             { // transition null -> new
-               mSkin->applyMorph(Morph(mMorphs[0],
-                                       mMorphs[mMorphNew],
-                                       (l - 0.5f) / 0.5f));
-             }
-         }
-     }
+  if (mMorphs.size() > 0)
+    {
+      if (mMorphLerpInProgress)
+        {
+          mCurrT += deltaT;
+          auto l = mCurrT / period;
+          if (mCurrT >= period)
+            {
+              mMorphLerpInProgress = false;
+              mSkin->applyMorph(mMorphs[mMorphNew]);
+            }
+          else if (l < 0.5f)
+            { // transition old -> null
+              mSkin->applyMorph(Morph(mMorphs[mMorphOld],
+                                      mMorphs[0],
+                                      l / 0.5f));
+            }
+          else
+            { // transition null -> new
+              mSkin->applyMorph(Morph(mMorphs[0],
+                                      mMorphs[mMorphNew],
+                                      (l - 0.5f) / 0.5f));
+            }
+        }
+    }
 }
 
 void dmp::Model::applyMorph(size_t index, float time)

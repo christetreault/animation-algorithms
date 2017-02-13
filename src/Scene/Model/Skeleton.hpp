@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include "../Object.hpp"
+#include "Pose.hpp"
 
 namespace dmp
 {
@@ -113,6 +114,7 @@ namespace dmp
     static std::function<bool(glm::mat4 &, float)> makeXformFn(dmp::Balljoint * bj,
                                                                bool * dirty);
     const std::vector<glm::mat4> & getMs() const;
+    void applyPose(const Pose & p);
   private:
     std::unique_ptr<Bone> mRoot;
     std::unique_ptr<Balljoint> mAST;

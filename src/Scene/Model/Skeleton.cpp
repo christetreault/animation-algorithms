@@ -331,3 +331,44 @@ const std::vector<glm::mat4> & dmp::Skeleton::getMs() const
 {
   return mMs;
 }
+
+static void applyPoseImpl(dmp::Balljoint * bj,
+                          std::vector<glm::vec3>::const_iterator & curr,
+                          std::vector<glm::vec3>::const_iterator & end)
+{
+  using namespace dmp;
+
+  expect("range valid", curr != end);
+
+  bj->rotateDirty = bj->rotateDirty || !(roughEq(curr->x, bj->posex)
+                                         && roughEq(curr->y, bj->posey)
+                                         && roughEq(curr->z, bj->posez));
+
+  bj->posex = curr->x;
+  bj->posey = curr->y;
+  bj->posez = curr->z;
+
+  std::cerr << "pose = <"
+            << bj->posex << ", "
+            << bj->posey << ", "
+            << bj->posez << ", "
+            << bj->rotateDirty << ">" << std::endl;;
+
+
+  safeIncr(curr, end);
+
+  for (auto & child : bj->children)
+    {
+      applyPoseImpl(child.get(), curr, end);
+    }
+}
+
+void dmp::Skeleton::applyPose(const Pose & p)
+{
+  auto b = p.rotations.begin();
+  auto e = p.rotations.end();
+
+  // TODO: root translation
+
+  applyPoseImpl(mAST.get(), b, e);
+}

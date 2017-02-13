@@ -23,6 +23,10 @@ namespace dmp
                 TokenIterator & iter,
                 TokenIterator & end);
 
+  void parseFloat(float & f,
+                  TokenIterator & iter,
+                  TokenIterator & end);
+
   void parseString(std::string & s,
                    TokenIterator & iter,
                    TokenIterator & end);
@@ -63,7 +67,8 @@ namespace dmp
                 TokenIterator & beg,
                 TokenIterator & end);
 
-  // Try parsers until one either consumes input or throws
+  // Try parsers until one either consumes input or throws. Throws if
+  // no parser succeeds
   void orParse(std::list<std::function<void(TokenIterator &,
                                             TokenIterator &)>> ps,
                TokenIterator & beg,
@@ -72,8 +77,13 @@ namespace dmp
   // Try all parsers until they either all succeed, or one throws
   void allParse(std::list<std::function<void(TokenIterator &,
                                              TokenIterator &)>> ps,
-               TokenIterator & beg,
+                TokenIterator & beg,
                 TokenIterator & end);
+
+  // Repeatedly run p until it stops consuming input or beg == end
+  void manyParse(std::function<void(TokenIterator &, TokenIterator &)> p,
+                 TokenIterator & beg,
+                 TokenIterator & end);
 
   // Try all parsers until no more succeed. Return list contains failures
   std::list<std::function<void(TokenIterator &,

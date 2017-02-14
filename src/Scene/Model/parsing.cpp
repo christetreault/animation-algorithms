@@ -208,7 +208,7 @@ void dmp::readFile(const std::string & path,
 {
   std::ifstream fin(path, std::ios::in);
   fin.seekg(0, std::ios_base::end);
-  size_t endPos = fin.tellg();
+  auto endPos = fin.tellg();
   fin.seekg(0, std::ios_base::beg);
 
   std::vector<char> data(endPos);

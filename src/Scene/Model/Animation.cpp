@@ -60,7 +60,7 @@ void dmp::Channel::precompute()
   drawCount = verts.size();
   glBindVertexArray(mVAO);
   glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-  glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(ChannelVertex),
+  glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) verts.size() * sizeof(ChannelVertex),
                verts.data(), GL_STATIC_DRAW);
 
   expectNoErrors("Fill VBO");

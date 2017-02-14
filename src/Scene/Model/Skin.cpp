@@ -32,8 +32,9 @@ static void parsePositions(dmp::SkinData & data,
               TokenIterator & iter,
               TokenIterator &)
     {
-      size_t size = stoi(*iter);
-      data.verts.reserve(size);
+      auto size = stoi(*iter);
+      expect("size not negative", size >= 0);
+      data.verts.reserve((size_t) size);
     };
 
   auto f = [](dmp::SkinData & data,
@@ -56,8 +57,9 @@ static void parseNormals(dmp::SkinData & data,
               TokenIterator & iter,
               TokenIterator &)
     {
-      size_t size = stoi(*iter);
-      data.normals.reserve(size);
+      auto size = stoi(*iter);
+      expect("size not negative", size >= 0);
+      data.normals.reserve((size_t) size);
     };
 
   auto f = [](dmp::SkinData & data,
@@ -88,15 +90,17 @@ static void parseSkinWeights(dmp::SkinData & data,
                TokenIterator & iter,
                TokenIterator & end)
     {
+      auto count = stoi(*iter);
+      expect("count not negative", count >= 0);
       dmp::SkinWeight w = {};
-      w.count = stoi(*iter);
+      w.count = (size_t) count;
       w.index.resize(w.count);
       w.weight.resize(w.count);
 
       safeIncr(iter, end); // advance to index
       for (size_t i = 0; i < w.count; ++i)
         {
-          w.index[i] = stoi(*iter);
+          w.index[i] = (size_t) stoi(*iter);
           safeIncr(iter, end); // advance to weight
           w.weight[i] = stof(*iter);
           safeIncr(iter, end) // advance to next index or }
@@ -116,16 +120,18 @@ static void parseIdxs(dmp::SkinData & data,
               TokenIterator & iter,
               TokenIterator &)
     {
-      size_t size = stoi(*iter);
-      data.idxs.reserve(size);
+      auto size = stoi(*iter);
+      expect("size not negative", size >= 0);
+      data.idxs.reserve((size_t) size);
     };
 
   auto f = [](dmp::SkinData & data,
                TokenIterator & iter,
                TokenIterator & end)
     {
-      size_t i = stoi(*iter);
-      data.idxs.push_back(i);
+      auto i = stoi(*iter);
+      expect("i not negative", i >= 0);
+      data.idxs.push_back((size_t) i);
       safeIncr(iter, end); // advance to next index or }
     };
 
@@ -140,7 +146,8 @@ static void parseBindings(dmp::SkinData & data,
               TokenIterator & iter,
               TokenIterator &)
     {
-      size_t size = stoi(*iter);
+      auto size = stoi(*iter);
+      expect("size not negative", size >= 0);
       data.invBindings.reserve(size);
     };
 

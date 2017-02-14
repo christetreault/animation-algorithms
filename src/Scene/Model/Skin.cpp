@@ -82,8 +82,9 @@ static void parseSkinWeights(dmp::SkinData & data,
               TokenIterator & iter,
               TokenIterator &)
     {
-      size_t size = stoi(*iter);
-      data.weights.reserve(size);
+      auto size = stoi(*iter);
+      expect("size not negative", size >= 0);
+      data.weights.reserve((size_t) size);
     };
 
   auto f = [](dmp::SkinData & data,

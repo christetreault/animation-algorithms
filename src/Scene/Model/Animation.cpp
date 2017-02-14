@@ -57,10 +57,10 @@ void dmp::Channel::precompute()
   // }
 
 
-  drawCount = verts.size();
+  drawCount = (GLsizei) verts.size();
   glBindVertexArray(mVAO);
   glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-  glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) verts.size() * sizeof(ChannelVertex),
+  glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) (verts.size() * sizeof(ChannelVertex)),
                verts.data(), GL_STATIC_DRAW);
 
   expectNoErrors("Fill VBO");
@@ -105,7 +105,7 @@ void dmp::Channel::precompute()
        //   }
 
       expect("|verts| = 4", verts.size() == 4);
-      curr.drawCount = verts.size();
+      curr.drawCount = (GLsizei) verts.size();
       glGenVertexArrays(1, &curr.mVAO);
       glGenBuffers(1, &curr.mVBO);
 
@@ -113,7 +113,7 @@ void dmp::Channel::precompute()
 
       glBindVertexArray(curr.mVAO);
       glBindBuffer(GL_ARRAY_BUFFER, curr.mVBO);
-      glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(ChannelVertex),
+      glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) (verts.size() * sizeof(ChannelVertex)),
                    verts.data(), GL_STATIC_DRAW);
 
       expectNoErrors("Fill VBO");
@@ -216,8 +216,9 @@ static void parseChannel(dmp::ChannelData & cd,
                       auto & beg,
                       auto & end)
           {
-            size_t size = stoi(*beg);
-            data.keyframes.resize(size);
+            auto size = stoi(*beg);
+            expect("size not negative", size >= 0);
+            data.keyframes.resize((size_t) size);
           };
 
           auto f = [](auto & data,

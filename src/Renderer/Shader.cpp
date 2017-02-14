@@ -9,6 +9,7 @@ std::map<const std::string, std::vector<char>> dmp::Shader::memo;
 std::vector<char> dmp::Shader::loadGLSL(const std::string & path)
 {
   std::ifstream fin(path, std::ios::in);
+  expect("file opened successfully", fin);
   fin.seekg(0, std::ios_base::end);
   size_t endPos = fin.tellg();
   fin.seekg(0, std::ios_base::beg);

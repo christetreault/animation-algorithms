@@ -614,7 +614,6 @@ float dmp::Channel::evaluate(float t)
       size_t distance = 0;
       float acc = t;
       float startVal = evaluateImpl(startTime);
-      float endVal = evaluateImpl(endTime);
 
       expect ("tPrime in in range",
               startTime <= tPrime && tPrime <= endTime);
@@ -654,7 +653,6 @@ float dmp::Channel::evaluate(float t)
       float tPrime = mod(t-startTime, rangeTime) + startTime;
       size_t distance = 0;
       float acc = t;
-      float startVal = evaluateImpl(startTime);
       float endVal = evaluateImpl(endTime);
 
       expect ("tPrime out in range",
@@ -924,7 +922,9 @@ void dmp::Animation::drawCurveIndex(int idx)
   glUniformBlockBinding(mShaderProg, pcIdx, 1);
   expectNoErrors("set uniform");
 
-  mChannels[idx].draw();
+  expect("index not negative", idx >= 0);
+
+  mChannels[(size_t) idx].draw();
 }
 
 void dmp::Channel::draw()

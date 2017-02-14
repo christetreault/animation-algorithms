@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include "Pose.hpp"
 #include "../../util.hpp"
+#include "../../Renderer/Shader.hpp"
 #include <boost/variant.hpp>
 
 namespace dmp
@@ -37,6 +38,10 @@ namespace dmp
       expect("tangentOut evaluated", tangentOut.which() == 0);
       return boost::get<float>(tangentOut);
     }
+
+    GLuint mVAO = 0;
+    GLuint mVBO = 0;
+    GLsizei drawCount = 0;
   };
 
   enum class Extrapolation
@@ -51,6 +56,15 @@ namespace dmp
     std::vector<Keyframe> keyframes;
   };
 
+  #define CURVE_TYPE 0
+  #define TAN_IN_TYPE 1
+  #define TAN_OUT_TYPE 2
+  struct ChannelVertex
+  {
+    glm::vec2 pos;
+    int type;
+  };
+
   class Channel
   {
   public:
@@ -60,15 +74,31 @@ namespace dmp
     Channel(Channel &&) = default;
     Channel & operator=(Channel &&) = default;
 
+    ~Channel()
+    {
+      if (mVAO != 0) glDeleteVertexArrays(1, &mVAO);
+      if (mVBO != 0) glDeleteBuffers(1, &mVBO);
+
+      for (auto & curr : mData.keyframes)
+        {
+          if (curr.mVAO != 0) glDeleteVertexArrays(1, &curr.mVAO);
+          if (curr.mVBO != 0) glDeleteBuffers(1, &curr.mVBO);
+        }
+    }
+
     Channel(const ChannelData & cd);
     void precompute();
     float evaluate(float t);
     void printChannel();
+    void draw();
   private:
     float evaluateImpl(float t);
     void computeTangents();
     void computeCubicCoefficients();
     ChannelData mData;
+    GLuint mVAO = 0;
+    GLuint mVBO = 0;
+    GLsizei drawCount = 0;
   };
 
   class Animation
@@ -83,12 +113,18 @@ namespace dmp
     Animation(const std::string & path);
 
     Pose evaluate(float t);
+
+    int nextCurveIndex(int prev);
+    int prevCurveIndex(int next);
+    void drawCurveIndex(int idx);
+    void printChannel(size_t idx);
   private:
     void printAnimation();
     void initAnimation(const std::string & path);
     float mRangeBegin;
     float mRangeEnd;
     std::vector<Channel> mChannels;
+    Shader mShaderProg;
   };
 }
 

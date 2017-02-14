@@ -20,7 +20,7 @@ namespace dmp
     void swapBuffer() {glfwSwapBuffers(mWindow);}
     void pollEvents() {glfwPollEvents();}
 
-    void updateFPS(size_t fps, size_t mspf);
+    void updateFPS(size_t fps, size_t mspf, float scale);
 
     int getFramebufferWidth() const
     {

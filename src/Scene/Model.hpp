@@ -43,7 +43,10 @@ namespace dmp
 
     void applyMorph(size_t index, float time);
 
+    Animation * askAnimation() {return mAnimation.get();}
+    bool hasAnimation() {return mAnimation != nullptr;}
   private:
+    glm::mat4 mM;
     bool mDirty = true;
     std::unique_ptr<Skeleton> mSkeleton;
     std::unique_ptr<Skin> mSkin;

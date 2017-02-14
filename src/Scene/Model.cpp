@@ -95,9 +95,10 @@ void dmp::Model::update(float deltaT,
       if (mAnimation)
         {
           auto thePose = mAnimation->evaluate(mTimeElapsed);
+          mM = glm::translate(glm::mat4(), thePose.translation);
           mSkeleton->applyPose(thePose);
         }
-      mSkeleton->update(deltaT, M, dirty);
+      mSkeleton->update(deltaT, M * mM, dirty);
     }
 
   if (mSkeleton && mSkin)

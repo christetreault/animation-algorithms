@@ -10,10 +10,13 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
                        std::function<bool(glm::mat4 &, float)> lightFn,
                        const CommandLine & c)
 {
+  displayedAnimCurve = -1;
   graph = std::make_unique<Branch>();
 
   model = graph->insert(Model(c, objects,
                               1, 0));
+
+  if (model->hasAnimation()) animation = model->askAnimation();
 
   Object::sortByMaterial(objects);
 

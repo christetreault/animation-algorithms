@@ -4,6 +4,8 @@
 #include <list>
 #include <cmath>
 #include <glm/gtx/string_cast.hpp>
+#include "../../config.hpp"
+#include <glm/glm.hpp>
 
 static const std::string tokRange = "range";
 static const std::string tokNumChannels = "numchannels";
@@ -31,6 +33,111 @@ void dmp::Channel::precompute()
 {
   computeTangents();
   computeCubicCoefficients();
+
+  //std::cerr << "opengl stuff" << std::endl;
+
+  glGenVertexArrays(1, &mVAO);
+  glGenBuffers(1, &mVBO);
+
+  expectNoErrors("Gen vao/vbo");
+
+  std::vector<ChannelVertex> verts(0);
+
+  for (float t = -5.0f; t < 4.9f; t = t + 0.02f)
+  {
+    verts.push_back({glm::vec2(t , evaluate(t)), CURVE_TYPE});
+    verts.push_back({glm::vec2(t + 0.02f, evaluate(t + 0.02f)), CURVE_TYPE});
+  }
+
+  //for (const auto & curr : verts)
+  // {
+  //   std::cerr << glm::to_string(curr.pos) << std::endl;
+       //expect("curr x in clip space", curr.pos.x >= -1.0f && curr.pos.x <= 1.0f);
+       //expect("curr y in clip space", curr.pos.y >= -1.0f && curr.pos.y <= 1.0f);
+  // }
+
+
+  drawCount = verts.size();
+  glBindVertexArray(mVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+  glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(ChannelVertex),
+               verts.data(), GL_STATIC_DRAW);
+
+  expectNoErrors("Fill VBO");
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0,
+                        2,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(ChannelVertex),
+                        (GLvoid *) 0);
+
+  glEnableVertexAttribArray(1);
+  glVertexAttribIPointer(1,
+                         1,
+                         GL_INT,
+                         sizeof(ChannelVertex),
+                         (GLvoid *) offsetof(ChannelVertex, type));
+
+  expectNoErrors("Set vertex attributes");
+
+  for (auto & curr : mData.keyframes)
+    {
+      std::vector<ChannelVertex> verts(4);
+      //std::cerr << "tangents" << std::endl;
+      verts[0] = {glm::vec2((curr.time-0.1f),
+                            curr.value + curr.getTangentIn() * -0.1f), TAN_IN_TYPE};
+      //std::cerr << glm::to_string(verts[0].pos) << std::endl;
+      verts[1] = {glm::vec2(curr.time,
+                            (curr.value)), TAN_IN_TYPE};
+      //std::cerr << glm::to_string(verts[1].pos) << std::endl;
+      verts[2] = {glm::vec2(curr.time,
+                            (curr.value)), TAN_OUT_TYPE};
+      //std::cerr << glm::to_string(verts[2].pos) << std::endl;
+      verts[3] = {glm::vec2((curr.time+0.1f),
+                            curr.value + curr.getTangentOut() * 0.1f), TAN_OUT_TYPE};
+      //std::cerr << glm::to_string(verts[3].pos) << std::endl;
+
+       // for (auto & v : verts)
+       //   {
+       //     v.pos = v.pos / 5.0f;
+       //   }
+
+      expect("|verts| = 4", verts.size() == 4);
+      curr.drawCount = verts.size();
+      glGenVertexArrays(1, &curr.mVAO);
+      glGenBuffers(1, &curr.mVBO);
+
+      expectNoErrors("Gen vao/vbo");
+
+      glBindVertexArray(curr.mVAO);
+      glBindBuffer(GL_ARRAY_BUFFER, curr.mVBO);
+      glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(ChannelVertex),
+                   verts.data(), GL_STATIC_DRAW);
+
+      expectNoErrors("Fill VBO");
+
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0,
+                            2,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            sizeof(ChannelVertex),
+                            (GLvoid *) 0);
+
+      glEnableVertexAttribArray(1);
+      glVertexAttribIPointer(1,
+                             1,
+                             GL_INT,
+                             sizeof(ChannelVertex),
+                             (GLvoid *) offsetof(ChannelVertex, type));
+
+      expectNoErrors("Set vertex attributes");
+    }
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 }
 
 static void parseChannel(dmp::ChannelData & cd,
@@ -215,7 +322,7 @@ void dmp::Channel::computeCubicCoefficients()
   static const glm::mat4 hermite =
     {
         2.0f, -2.0f,  1.0f,  1.0f,
-       -3.0f,  3.0f, -2.0f, -2.0f,
+       -3.0f,  3.0f, -2.0f, -1.0f,
         0.0f,  0.0f,  1.0f,  0.0f,
         1.0f,  0.0f,  0.0f,  0.0f
     };
@@ -347,7 +454,6 @@ void dmp::Channel::computeTangents()
           break;
         case Tangent::smooth:
         case Tangent::linear:
-          // TODO
           switch (mData.extrapIn)
             {
             case Extrapolation::constant:
@@ -359,10 +465,12 @@ void dmp::Channel::computeTangents()
               break;
             case Extrapolation::cycle:
               kf[i].tangentIn = computeLinearIn(kf[kf.size() - 1], kf[i]);
+              //kf[i].tangentIn = kf[i].tangentOut;
               break;
             case Extrapolation::cycleOffset:
               kfp.value = kfp.value - kf[i].value;
               kf[i].tangentIn = computeLinearIn(kfp, kf[i]);
+              //kf[i].tangentIn = kf[i].tangentOut;
               break;
             case Extrapolation::bounce:
               kf[i].tangentIn = -(boost::get<float>(kf[i].tangentOut));
@@ -417,10 +525,12 @@ void dmp::Channel::computeTangents()
               break;
             case Extrapolation::cycle:
               kf[i].tangentOut = computeLinearOut(kf[i], kf[0]);
+              //kf[i].tangentOut = kf[i].tangentIn;
               break;
             case Extrapolation::cycleOffset:
               kfn.value = kfn.value + kf[i].value;
               kf[i].tangentOut = computeLinearOut(kf[i], kfn);
+              //kf[i].tangentOut = kf[i].tangentIn;
               break;
             case Extrapolation::bounce:
               kf[i].tangentOut = -(boost::get<float>(kf[i].tangentIn));
@@ -451,10 +561,10 @@ float dmp::Channel::evaluateImpl(float t)
       return mData.keyframes[0].value;
     }
 
-  std::cerr << " t = " << t << " curr.t = " << mData.keyframes[0].time << std::endl;
+  //std::cerr << " t = " << t << " curr.t = " << mData.keyframes[0].time << std::endl;
   for (size_t i = 1; i < mData.keyframes.size(); ++i)
     {
-      std::cerr << " t = " << t << " curr.t = " << mData.keyframes[i].time << std::endl;
+      //std::cerr << " t = " << t << " curr.t = " << mData.keyframes[i].time << std::endl;
       if (roughEq(mData.keyframes[i].time, t))
         {
           return mData.keyframes[i].value;
@@ -482,7 +592,6 @@ static float mod(float lhs, float rhs)
   if (rhs == 0.0f) return rhs;
   auto m = fmodf(lhs, rhs);
   if (m < 0.0f) m += rhs;
-  std::cerr << lhs << " mod " << rhs << " = " << m << std::endl;
   return m;
 }
 
@@ -492,43 +601,34 @@ float dmp::Channel::evaluate(float t)
   auto endTime = mData.keyframes.back().time;
   auto rangeTime = endTime - startTime;
 
-  std::cerr << "start time = " << startTime << std::endl;
-  std::cerr << "end time = " << endTime << std::endl;
-  std::cerr << "time range = " << rangeTime << std::endl;
-  std::cerr << "time = " << t << std::endl;
 
   if (t >= startTime && t <= endTime)
     { // In range, just evaluate
-      //std::cerr << "no extrap " << std::endl;
       return evaluateImpl(t);
     }
+
   else if (t < startTime)
     {// extrapolateIn
-      //std::cerr << "start time = " << startTime << std::endl;
       float tPrime = mod(t-startTime, rangeTime) + startTime;
       size_t distance = 0;
       float acc = t;
       float startVal = evaluateImpl(startTime);
       float endVal = evaluateImpl(endTime);
 
-      std::cerr << "tPrime in = " << tPrime << std::endl;
       expect ("tPrime in in range",
               startTime <= tPrime && tPrime <= endTime);
 
       switch (mData.extrapIn)
         {
         case Extrapolation::constant:
-          //std::cerr << "constant in" << std::endl;
           return startVal;
         case Extrapolation::linear:
-          //std::cerr << "linear in" << std::endl;
           return startVal
             * mData.keyframes.front().getTangentOut();
         case Extrapolation::cycle:
-          //std::cerr << "cycle in" << std::endl;
-          evaluateImpl(tPrime);
+          return evaluateImpl(tPrime);
+          return 0.0f;
         case Extrapolation::cycleOffset:
-          //std::cerr << "cycle offset in" << std::endl;
           while (true)
             {
               acc = acc + rangeTime;
@@ -536,9 +636,8 @@ float dmp::Channel::evaluate(float t)
               if (acc >= startTime && acc <= endTime) break;
             }
           return ((((float) distance) * startVal)
-                  - (evaluateImpl(endTime - tPrime)));
+          + (evaluateImpl(tPrime)));
         case Extrapolation::bounce:
-          //std::cerr << "bounce in" << std::endl;
           while (true)
             {
               acc = acc + rangeTime;
@@ -557,24 +656,21 @@ float dmp::Channel::evaluate(float t)
       float startVal = evaluateImpl(startTime);
       float endVal = evaluateImpl(endTime);
 
-      std::cerr << "tPrime out = " << tPrime << std::endl;
       expect ("tPrime out in range",
               startTime <= tPrime && tPrime <= endTime);
 
       switch (mData.extrapOut)
         {
         case Extrapolation::constant:
-          //std::cerr << "constant out" << std::endl;
           return endVal;
         case Extrapolation::linear:
-          //std::cerr << "linear out" << std::endl;
           return endVal
             * mData.keyframes.back().getTangentIn();
+          //return 0.0f;
         case Extrapolation::cycle:
-          //std::cerr << "cycle out" << std::endl;
           return evaluateImpl(tPrime);
+          //return 0.0f;
         case Extrapolation::cycleOffset:
-          //std::cerr << "cycle offset out" << std::endl;
           while (true)
             {
               acc = acc - rangeTime;
@@ -582,9 +678,8 @@ float dmp::Channel::evaluate(float t)
               if (acc >= startTime && acc <= endTime) break;
             }
           return ((((float) distance) * endVal)
-                  + (evaluateImpl(tPrime)));
+          + (evaluateImpl(fabsf(acc))));
         case Extrapolation::bounce:
-          //std::cerr << "bounce out" << std::endl;
           while (true)
             {
               acc = acc - rangeTime;
@@ -595,6 +690,7 @@ float dmp::Channel::evaluate(float t)
           else return evaluateImpl(tPrime);
         }
     }
+  impossible("channel::evaluate if/then/else didn't return");
 }
 
 dmp::Animation::Animation(const std::string & path)
@@ -689,7 +785,16 @@ void dmp::Animation::initAnimation(const std::string & path)
       curr.precompute();
     }
 
-  printAnimation();
+  //printAnimation();
+
+  auto vertName = channelShader + std::string(".vert");
+  auto fragName = channelShader + std::string(".frag");
+
+  mShaderProg.initShader(vertName.c_str(),
+                         nullptr, nullptr, nullptr,
+                         fragName.c_str());
+
+  expectNoErrors("load channel shader");
 }
 
 dmp::Pose dmp::Animation::evaluate(float t)
@@ -702,6 +807,9 @@ dmp::Pose dmp::Animation::evaluate(float t)
   auto startTime = mRangeBegin;
   auto endTime = mRangeEnd;
   auto spanTime = endTime - startTime;
+  //std::cerr << "start time: " << startTime;
+  //std::cerr << " end time: " << endTime;
+  //std::cerr << " timeRange: " << spanTime << std::endl;
   float tPrime = startTime + fmodf(t, spanTime); // TODO: probalby needs some fabs()
 
   float x, y, z;
@@ -724,10 +832,17 @@ dmp::Pose dmp::Animation::evaluate(float t)
       z = begin->evaluate(tPrime);
       safeIncr(begin, end);
       retval.rotations.emplace_back(x, y, z);
-      std::cerr << t << " --> " << glm::to_string(retval.rotations.back()) << std::endl;
+      //std::cerr << t << " --> " << glm::to_string(retval.rotations.back()) << std::endl;
     }
 
   return retval;
+}
+
+void dmp::Animation::printChannel(size_t idx)
+{
+  expect("index in range", idx < mChannels.size());
+
+  mChannels[idx].printChannel();
 }
 
 void dmp::Animation::printAnimation()
@@ -782,4 +897,49 @@ void dmp::Channel::printChannel()
     }
 
   std::cerr << "}" << std::endl;
+}
+
+int dmp::Animation::nextCurveIndex(int prev)
+{
+  if (prev < 0) return 0;
+  else if ((size_t) prev >= mChannels.size() - 1) return -1;
+  else return prev + 1;
+}
+
+int dmp::Animation::prevCurveIndex(int prev)
+{
+  if (prev <= 0) return -1;
+  else if ((size_t) prev > mChannels.size()) return -1;
+  else return prev - 1;
+}
+
+void dmp::Animation::drawCurveIndex(int idx)
+{
+  if (idx < 0) return;
+  if ((size_t) idx >= mChannels.size()) return;
+
+  glUseProgram(mShaderProg);
+  GLuint pcIdx = glGetUniformBlockIndex(mShaderProg, "PassConstants");
+  glUniformBlockBinding(mShaderProg, pcIdx, 1);
+  expectNoErrors("set uniform");
+
+  mChannels[idx].draw();
+}
+
+void dmp::Channel::draw()
+{
+  glBindVertexArray(mVAO);
+  expectNoErrors("bind VAO");
+
+  glDrawArrays(GL_LINES, 0, drawCount);
+  expectNoErrors("draw");
+
+  for (auto & curr : mData.keyframes)
+    {
+      glBindVertexArray(curr.mVAO);
+      expectNoErrors("bind VAO");
+
+      glDrawArrays(GL_LINES, 0, curr.drawCount);
+      expectNoErrors("draw");
+    }
 }

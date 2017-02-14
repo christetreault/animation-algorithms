@@ -94,7 +94,7 @@ dmp::Program::Program(int width, int height,
 
   mScene.build(cameraFn, lightFn, file);
 
-  mDOFWindow = std::make_unique<DOFWindow>(mScene.model->getSkeletonAST());
+  //mDOFWindow = std::make_unique<DOFWindow>(mScene.model->getSkeletonAST());
 
   Keybind esc((GLFWwindow *) mWindow,
               [&](Keybind & k)
@@ -168,12 +168,57 @@ dmp::Program::Program(int width, int height,
               mRenderOptions.drawNormals = !(mRenderOptions.drawNormals);
             },
             GLFW_KEY_N);
-  Keybind c(mWindow,
-            [&](Keybind &)
-            {
-              mDOFWindow->show();
-            },
-            GLFW_KEY_C);
+  Keybind comma(mWindow,
+                [&](Keybind &)
+                {
+                  if (mTimeScale < 0.1f) return;
+                  else if (mTimeScale < 2.0f) mTimeScale = mTimeScale - 0.1f;
+                  else mTimeScale = mTimeScale - 1.0f;
+                },
+                GLFW_KEY_COMMA);
+  Keybind period(mWindow,
+                 [&](Keybind &)
+                 {
+                   if (mTimeScale > 10.0f) return;
+                   else if (mTimeScale > 0.9f) mTimeScale = mTimeScale + 1.0f;
+                   else mTimeScale = mTimeScale + 0.1f;
+                 },
+                 GLFW_KEY_PERIOD);
+  // Keybind c(mWindow,
+  //           [&](Keybind &)
+  //           {
+  //             mDOFWindow->show();
+  //           },
+  //           GLFW_KEY_C);
+  Keybind leftBrace(mWindow,
+              [&](Keybind &)
+              {
+                if (!mScene.animation) return;
+
+                mScene.displayedAnimCurve
+                  = mScene.animation->prevCurveIndex(mScene.displayedAnimCurve);
+
+                std::cerr << "curve display index: " << mScene.displayedAnimCurve << std::endl;
+                if (mScene.displayedAnimCurve >= 0)
+                  {
+                    mScene.animation->printChannel((size_t) mScene.displayedAnimCurve);
+                  }
+              },
+              GLFW_KEY_LEFT_BRACKET);
+  Keybind rightBrace(mWindow,
+                  [&](Keybind &)
+                  {
+                    if (!mScene.animation) return;
+
+                    mScene.displayedAnimCurve
+                      = mScene.animation->nextCurveIndex(mScene.displayedAnimCurve);
+                    std::cerr << "curve display index: " << mScene.displayedAnimCurve << std::endl;
+                    if (mScene.displayedAnimCurve >= 0)
+                      {
+                        mScene.animation->printChannel((size_t) mScene.displayedAnimCurve);
+                      }
+                  },
+                  GLFW_KEY_RIGHT_BRACKET);
   Keybind l(mWindow,
             [&](Keybind &)
             {
@@ -184,7 +229,7 @@ dmp::Program::Program(int width, int height,
             GLFW_KEY_L);
 
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
-               w, n, c, l};
+               w, n, /*c,*/ l, leftBrace, rightBrace, comma, period};
 
   // Only the first 10 morphs will be bound
   size_t upperBound = file.morphPaths.size() < 10 ? file.morphPaths.size() : 10;
@@ -225,7 +270,7 @@ dmp::Program::Program(int width, int height,
     };
 }
 
-static void updateFPS(dmp::Window & window, const dmp::Timer & timer)
+static void updateFPS(dmp::Window & window, const dmp::Timer & timer, float scale)
 {
   static size_t fps = 0;
   static float timeElapsed = 0.0f;
@@ -235,7 +280,7 @@ static void updateFPS(dmp::Window & window, const dmp::Timer & timer)
 
   if ((runTime - timeElapsed) >= 1.0f)
     {
-      window.updateFPS(fps, 1000/fps);
+      window.updateFPS(fps, 1000/fps, scale);
 
       fps = 0;
       timeElapsed += 1.0f;
@@ -252,7 +297,7 @@ int dmp::Program::run()
       // time marches on...
       mTimer.tick();
 
-      updateFPS(mWindow, mTimer);
+      updateFPS(mWindow, mTimer, mTimeScale);
 
       // do actual work
 
@@ -262,7 +307,7 @@ int dmp::Program::run()
         }
       else
         {
-          mScene.update(mTimer.deltaTime());
+          mScene.update(mTimer.deltaTime() * mTimeScale);
           mRenderer.render(mScene, mTimer, mRenderOptions);
           mDOFWindow->pollEvents();
           mWindow.swapBuffer();

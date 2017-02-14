@@ -119,6 +119,7 @@ namespace dmp
 
     RenderOptions mRenderOptions;
 
+    float mTimeScale = 1.0f;
     Window mWindow;
     Renderer mRenderer;
     Timer mTimer;

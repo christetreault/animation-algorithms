@@ -348,11 +348,11 @@ static void applyPoseImpl(dmp::Balljoint * bj,
   bj->posey = curr->y;
   bj->posez = curr->z;
 
-  std::cerr << "pose = <"
-            << bj->posex << ", "
-            << bj->posey << ", "
-            << bj->posez << ", "
-            << bj->rotateDirty << ">" << std::endl;;
+  //std::cerr << "pose = <"
+  //          << bj->posex << ", "
+  //          << bj->posey << ", "
+  //          << bj->posez << ", "
+  //          << bj->rotateDirty << ">" << std::endl;;
 
 
   safeIncr(curr, end);

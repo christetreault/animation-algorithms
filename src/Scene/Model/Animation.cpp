@@ -917,6 +917,7 @@ void dmp::Animation::drawCurveIndex(int idx)
   if (idx < 0) return;
   if ((size_t) idx >= mChannels.size()) return;
 
+  expectNoErrors("enter draw curve");
   glUseProgram(mShaderProg);
   GLuint pcIdx = glGetUniformBlockIndex(mShaderProg, "PassConstants");
   glUniformBlockBinding(mShaderProg, pcIdx, 1);

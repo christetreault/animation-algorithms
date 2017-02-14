@@ -921,9 +921,9 @@ void dmp::Animation::drawCurveIndex(int idx)
 
   expectNoErrors("enter draw curve");
   glUseProgram(mShaderProg);
-  GLuint pcIdx = glGetUniformBlockIndex(mShaderProg, "PassConstants");
-  expectNoErrors("get pass constants index");
-  glUniformBlockBinding(mShaderProg, pcIdx, 1);
+  //GLuint pcIdx = glGetUniformBlockIndex(mShaderProg, "PassConstants");
+  //expectNoErrors("get pass constants index");
+  //glUniformBlockBinding(mShaderProg, pcIdx, 1);
   expectNoErrors("set uniform");
 
   expect("index not negative", idx >= 0);

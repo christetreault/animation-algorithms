@@ -34,8 +34,6 @@ void dmp::Channel::precompute()
   computeTangents();
   computeCubicCoefficients();
 
-  //std::cerr << "opengl stuff" << std::endl;
-
   glGenVertexArrays(1, &mVAO);
   glGenBuffers(1, &mVBO);
 
@@ -48,14 +46,6 @@ void dmp::Channel::precompute()
     verts.push_back({glm::vec2(t , evaluate(t)), CURVE_TYPE});
     verts.push_back({glm::vec2(t + 0.02f, evaluate(t + 0.02f)), CURVE_TYPE});
   }
-
-  //for (const auto & curr : verts)
-  // {
-  //   std::cerr << glm::to_string(curr.pos) << std::endl;
-       //expect("curr x in clip space", curr.pos.x >= -1.0f && curr.pos.x <= 1.0f);
-       //expect("curr y in clip space", curr.pos.y >= -1.0f && curr.pos.y <= 1.0f);
-  // }
-
 
   drawCount = (GLsizei) verts.size();
   glBindVertexArray(mVAO);
@@ -85,24 +75,14 @@ void dmp::Channel::precompute()
   for (auto & curr : mData.keyframes)
     {
       std::vector<ChannelVertex> verts(4);
-      //std::cerr << "tangents" << std::endl;
       verts[0] = {glm::vec2((curr.time-0.1f),
                             curr.value + curr.getTangentIn() * -0.1f), TAN_IN_TYPE};
-      //std::cerr << glm::to_string(verts[0].pos) << std::endl;
       verts[1] = {glm::vec2(curr.time,
                             (curr.value)), TAN_IN_TYPE};
-      //std::cerr << glm::to_string(verts[1].pos) << std::endl;
       verts[2] = {glm::vec2(curr.time,
                             (curr.value)), TAN_OUT_TYPE};
-      //std::cerr << glm::to_string(verts[2].pos) << std::endl;
       verts[3] = {glm::vec2((curr.time+0.1f),
                             curr.value + curr.getTangentOut() * 0.1f), TAN_OUT_TYPE};
-      //std::cerr << glm::to_string(verts[3].pos) << std::endl;
-
-       // for (auto & v : verts)
-       //   {
-       //     v.pos = v.pos / 5.0f;
-       //   }
 
       expect("|verts| = 4", verts.size() == 4);
       curr.drawCount = (GLsizei) verts.size();
@@ -358,7 +338,7 @@ void dmp::Channel::computeTangents()
     {
       if (kf[0].tangentIn.which() == 1) kf[0].tangentIn = 0.0f;
       if (kf[0].tangentOut.which() == 1) kf[0].tangentOut = 0.0f;
-      return; // that was easy
+      return;
     }
 
   auto computeLinearIn = [](const Keyframe & prev,
@@ -466,12 +446,10 @@ void dmp::Channel::computeTangents()
               break;
             case Extrapolation::cycle:
               kf[i].tangentIn = computeLinearIn(kf[kf.size() - 1], kf[i]);
-              //kf[i].tangentIn = kf[i].tangentOut;
               break;
             case Extrapolation::cycleOffset:
               kfp.value = kfp.value - kf[i].value;
               kf[i].tangentIn = computeLinearIn(kfp, kf[i]);
-              //kf[i].tangentIn = kf[i].tangentOut;
               break;
             case Extrapolation::bounce:
               kf[i].tangentIn = -(boost::get<float>(kf[i].tangentOut));
@@ -526,12 +504,10 @@ void dmp::Channel::computeTangents()
               break;
             case Extrapolation::cycle:
               kf[i].tangentOut = computeLinearOut(kf[i], kf[0]);
-              //kf[i].tangentOut = kf[i].tangentIn;
               break;
             case Extrapolation::cycleOffset:
               kfn.value = kfn.value + kf[i].value;
               kf[i].tangentOut = computeLinearOut(kf[i], kfn);
-              //kf[i].tangentOut = kf[i].tangentIn;
               break;
             case Extrapolation::bounce:
               kf[i].tangentOut = -(boost::get<float>(kf[i].tangentIn));
@@ -562,10 +538,8 @@ float dmp::Channel::evaluateImpl(float t)
       return mData.keyframes[0].value;
     }
 
-  //std::cerr << " t = " << t << " curr.t = " << mData.keyframes[0].time << std::endl;
   for (size_t i = 1; i < mData.keyframes.size(); ++i)
     {
-      //std::cerr << " t = " << t << " curr.t = " << mData.keyframes[i].time << std::endl;
       if (roughEq(mData.keyframes[i].time, t))
         {
           return mData.keyframes[i].value;
@@ -665,10 +639,8 @@ float dmp::Channel::evaluate(float t)
         case Extrapolation::linear:
           return endVal
             * mData.keyframes.back().getTangentIn();
-          //return 0.0f;
         case Extrapolation::cycle:
           return evaluateImpl(tPrime);
-          //return 0.0f;
         case Extrapolation::cycleOffset:
           while (true)
             {
@@ -784,8 +756,6 @@ void dmp::Animation::initAnimation(const std::string & path)
       curr.precompute();
     }
 
-  //printAnimation();
-
   auto vertName = channelShader + std::string(".vert");
   auto fragName = channelShader + std::string(".frag");
 
@@ -806,10 +776,7 @@ dmp::Pose dmp::Animation::evaluate(float t)
   auto startTime = mRangeBegin;
   auto endTime = mRangeEnd;
   auto spanTime = endTime - startTime;
-  //std::cerr << "start time: " << startTime;
-  //std::cerr << " end time: " << endTime;
-  //std::cerr << " timeRange: " << spanTime << std::endl;
-  float tPrime = startTime + fmodf(t, spanTime); // TODO: probalby needs some fabs()
+  float tPrime = startTime + fmodf(t, spanTime);
 
   float x, y, z;
 
@@ -831,7 +798,6 @@ dmp::Pose dmp::Animation::evaluate(float t)
       z = begin->evaluate(tPrime);
       safeIncr(begin, end);
       retval.rotations.emplace_back(x, y, z);
-      //std::cerr << t << " --> " << glm::to_string(retval.rotations.back()) << std::endl;
     }
 
   return retval;
@@ -921,9 +887,6 @@ void dmp::Animation::drawCurveIndex(int idx)
 
   expectNoErrors("enter draw curve");
   glUseProgram(mShaderProg);
-  //GLuint pcIdx = glGetUniformBlockIndex(mShaderProg, "PassConstants");
-  //expectNoErrors("get pass constants index");
-  //glUniformBlockBinding(mShaderProg, pcIdx, 1);
   expectNoErrors("set uniform");
 
   expect("index not negative", idx >= 0);

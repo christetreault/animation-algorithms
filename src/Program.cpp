@@ -94,8 +94,6 @@ dmp::Program::Program(int width, int height,
 
   mScene.build(cameraFn, lightFn, file);
 
-  //mDOFWindow = std::make_unique<DOFWindow>(mScene.model->getSkeletonAST());
-
   Keybind esc((GLFWwindow *) mWindow,
               [&](Keybind & k)
               {
@@ -184,41 +182,6 @@ dmp::Program::Program(int width, int height,
                    else mTimeScale = mTimeScale + 0.1f;
                  },
                  GLFW_KEY_PERIOD);
-  // Keybind c(mWindow,
-  //           [&](Keybind &)
-  //           {
-  //             mDOFWindow->show();
-  //           },
-  //           GLFW_KEY_C);
-  Keybind leftBrace(mWindow,
-              [&](Keybind &)
-              {
-                if (!mScene.animation) return;
-
-                mScene.displayedAnimCurve
-                  = mScene.animation->prevCurveIndex(mScene.displayedAnimCurve);
-
-                std::cerr << "curve display index: " << mScene.displayedAnimCurve << std::endl;
-                if (mScene.displayedAnimCurve >= 0)
-                  {
-                    mScene.animation->printChannel((size_t) mScene.displayedAnimCurve);
-                  }
-              },
-              GLFW_KEY_LEFT_BRACKET);
-  Keybind rightBrace(mWindow,
-                  [&](Keybind &)
-                  {
-                    if (!mScene.animation) return;
-
-                    mScene.displayedAnimCurve
-                      = mScene.animation->nextCurveIndex(mScene.displayedAnimCurve);
-                    std::cerr << "curve display index: " << mScene.displayedAnimCurve << std::endl;
-                    if (mScene.displayedAnimCurve >= 0)
-                      {
-                        mScene.animation->printChannel((size_t) mScene.displayedAnimCurve);
-                      }
-                  },
-                  GLFW_KEY_RIGHT_BRACKET);
   Keybind l(mWindow,
             [&](Keybind &)
             {
@@ -229,23 +192,7 @@ dmp::Program::Program(int width, int height,
             GLFW_KEY_L);
 
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
-               w, n, /*c,*/ l, leftBrace, rightBrace, comma, period};
-
-  // Only the first 10 morphs will be bound
-  size_t upperBound = file.morphPaths.size() < 10 ? file.morphPaths.size() : 10;
-
-  for (size_t i = 0; i <= upperBound ; ++i)
-    {
-      mKeybinds.insert(Keybind(mWindow,
-                               [&, i](Keybind &)
-                               {
-                                 expect("Model not null", mScene.model);
-                                 std::cerr << "Apply morph "
-                                           << i << std::endl;
-                                 mScene.model->applyMorph(i, mTimer.time());
-                               },
-                               GLFW_KEY_0 + ((int) i)));
-    }
+               w, n, l, comma, period};
 
   mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
                                          int key,

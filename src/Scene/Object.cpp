@@ -182,6 +182,27 @@ void dmp::Object::clearBindingMats()
   mBindingMats.resize(0);
 }
 
+void dmp::Object::draw() const
+{
+  expect("Object valid", mValid);
+  if (!mVisible) return;
+  if (mHasIndices)
+    {
+      glDrawElements(mPrimFormat,
+                     drawCount,
+                     GL_UNSIGNED_INT,
+                     0); // TODO: whats up with this parameter? (its a pointer)
+    }
+  else
+    {
+      glDrawArrays(mPrimFormat,
+                   0,
+                   drawCount);
+    }
+  glCullFace(GL_BACK);
+  expectNoErrors("Draw object");
+}
+
 // -----------------------------------------------------------------------------
 // Primitive shape constructor
 // -----------------------------------------------------------------------------

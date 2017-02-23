@@ -10,14 +10,11 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
                        std::function<bool(glm::mat4 &, float)> lightFn,
                        const CommandLine & c)
 {
-  displayedAnimCurve = -1;
   graph = std::make_unique<Branch>();
-
-  model = graph->insert(Model(c, objects,
-                              1, 0));
-
-  if (model->hasAnimation()) animation = model->askAnimation();
-
+  cloth = std::make_unique<Cloth>(100, 100, 2, ClothPrefab::banner);
+  std::string notex = "";
+  textures.emplace_back(notex);
+  cloth->buildObject(graph.get(), objects, 1, 0);
   Object::sortByMaterial(objects);
 
   materials.push_back( // Ruby = 0
@@ -46,9 +43,6 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
       },
       0.6f
     });
-
-  std::string tex = model->askTexturePath();
-  textures.emplace_back(tex);
 
   materialConstants =
     std::make_unique<UniformBuffer>(materials.size(),
@@ -79,7 +73,6 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
        {-1.0f, 0.0f, 0.0f, 0.0f},
        glm::mat4()
      });
-
 
    auto lightRot = graph->transform(lightFn);
    auto lightGroup = lightRot->branch();

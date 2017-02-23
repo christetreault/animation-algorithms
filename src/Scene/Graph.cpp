@@ -26,11 +26,6 @@ void ContainerVisitor::operator()(Light & lit) const
   lit.M = mM;
 }
 
-void ContainerVisitor::operator()(Model & mod) const
-{
-  mod.update(mDeltaT, mM, mDirty);
-}
-
 // -----------------------------------------------------------------------------
 // Container
 // -----------------------------------------------------------------------------
@@ -52,12 +47,6 @@ Object * Transform::insert(Object o)
 {
   mChild = std::make_unique<Container>(o);
   return &(boost::get<Object>(((Container *) mChild.get())->mValue));
-}
-
-Model * Transform::insert(Model m)
-{
-  mChild = std::make_unique<Container>(std::move(m));
-  return &(boost::get<Model>(((Container *) mChild.get())->mValue));
 }
 
 Light * Transform::insert(Light & l)
@@ -194,12 +183,6 @@ Object * Branch::insert(Object o)
 {
   mChildren.push_back(std::make_unique<Container>(o));
   return &(boost::get<Object>(((Container *) mChildren.back().get())->mValue));
-}
-
-Model * Branch::insert(Model m)
-{
-  mChildren.push_back(std::make_unique<Container>(std::move(m)));
-  return &(boost::get<Model>(((Container *) mChildren.back().get())->mValue));
 }
 
 Light * Branch::insert(Light & l)

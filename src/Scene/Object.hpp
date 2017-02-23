@@ -98,26 +98,7 @@ namespace dmp
       expectNoErrors("Bind object");
     }
 
-    void draw() const
-    {
-      expect("Object valid", mValid);
-      if (!mVisible) return;
-      if (mHasIndices)
-        {
-          glDrawElements(mPrimFormat,
-                         drawCount,
-                         GL_UNSIGNED_INT,
-                         0); // TODO: whats up with this parameter? (its a pointer)
-        }
-      else
-        {
-          glDrawArrays(mPrimFormat,
-                       0,
-                       drawCount);
-        }
-      glCullFace(GL_BACK);
-      expectNoErrors("Draw object");
-    }
+    void draw() const;
 
     ObjectConstants getObjectConstants() const;
     void tellBindingMats(const std::vector<glm::mat4> & mats);

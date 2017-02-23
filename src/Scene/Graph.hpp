@@ -8,8 +8,6 @@
 #include <memory>
 #include "Object.hpp"
 #include "Camera.hpp"
-#include "Model.hpp"
-#include "Model/Skeleton.hpp"
 
 
 namespace dmp
@@ -36,7 +34,6 @@ namespace dmp
       : mDeltaT(deltaT), mM(M), mDirty(dirty) {}
 
     void operator()(Object & obj) const;
-    void operator()(Model & mod) const;
     void operator()(CameraPos & cam) const;
     void operator()(CameraFocus & cam) const;
     void operator()(Light & lit) const;
@@ -51,12 +48,10 @@ namespace dmp
   public:
     Container() = delete;
     Container(Object obj) : mValue(obj) {}
-    Container(Model mod) : mValue(std::move(mod)) {}
     Container(CameraPos & cam) : mValue(cam) {}
     Container(CameraFocus & cam) : mValue(cam) {}
     Container(Light & lit) : mValue(lit) {}
-    boost::variant<Object, Model,
-                   CameraPos &, CameraFocus &, Light &> mValue;
+    boost::variant<Object, CameraPos &, CameraFocus &, Light &> mValue;
   private:
     void updateImpl(float deltaT, glm::mat4 M, bool dirty) override;
 
@@ -77,7 +72,6 @@ namespace dmp
     std::unique_ptr<Node> mChild = nullptr;
 
     Object * insert(Object o);
-    Model * insert(Model m);
     Light * insert(Light & l);
     CameraPos * insert(CameraPos & c);
     CameraFocus * insert(CameraFocus & c);
@@ -114,7 +108,6 @@ namespace dmp
     Branch * insert(std::unique_ptr<Branch> & b);
     Container * insert(std::unique_ptr<Container> & c);
     Object * insert(Object o);
-    Model * insert(Model m);
     Light * insert(Light & l);
     CameraPos * insert(CameraPos & c);
     CameraFocus * insert(CameraFocus & c);

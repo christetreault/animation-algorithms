@@ -184,6 +184,4 @@ void dmp::Renderer::render(const Scene & scene,
     }
 
   if (ro.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-  scene.animation->drawCurveIndex(scene.displayedAnimCurve);
 }

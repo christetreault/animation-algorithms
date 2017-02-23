@@ -8,10 +8,9 @@
 #include "Scene/Graph.hpp"
 #include "Scene/Camera.hpp"
 #include "Scene/Skybox.hpp"
+#include "Scene/Cloth.hpp"
 #include "Renderer/UniformBuffer.hpp"
 #include "Renderer/Texture.hpp"
-#include "Scene/Model.hpp"
-#include "Scene/Model/Skeleton.hpp"
 #include "CommandLine.hpp"
 
 namespace dmp
@@ -27,9 +26,7 @@ namespace dmp
     std::unique_ptr<UniformBuffer> objectConstants;
     std::unique_ptr<Branch> graph;
     std::unique_ptr<Skybox> skybox;
-    Model * model;
-    int displayedAnimCurve;
-    Animation * animation;
+    std::unique_ptr<Cloth> cloth;
 
     void build(std::function<bool(glm::mat4 &, float)> cameraFn,
                std::function<bool(glm::mat4 &, float)> lightFn,

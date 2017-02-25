@@ -108,7 +108,7 @@ static float springConstantOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 800.0f / (float) (step * step * step);
+    default: return 1100.0f / (float) (step * step * step);
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -119,7 +119,7 @@ static float dampingFactorOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return -1.6f / ((float) (step * step * step));
+    default: return -2.2f / ((float) (step * step * step));
     }
   impossible("non-exhaustive switch");
   return 0.0f;

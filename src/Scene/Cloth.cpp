@@ -5,7 +5,7 @@
 
 #include "../util.hpp"
 
-static const float maxDeltaT = 1.0f / 120.0f;
+static const float maxDeltaT = 1.0f / 240.0f;
 static const float speedLimit = 30.0f;
 
 void dmp::Particle::accumulateForce(glm::vec3 inForce)
@@ -70,8 +70,10 @@ void dmp::SpringDamper::accumulateForces()
   float v1 = glm::dot(eHat, p1.velocity);
   float v2 = glm::dot(eHat, p2.velocity);
 
-  auto fsd = -springConstant * (restLength - len) - dampingFactor * (v1 - v2);
-  auto f = fsd * eHat;
+
+  auto fd = -dampingFactor * (v1 - v2);
+  auto fs = -springConstant * (restLength - len);
+  auto f = (fs + fd) * eHat;
   p1.accumulateForce(f);
   p2.accumulateForce(-f);
 
@@ -106,7 +108,7 @@ static float springConstantOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 100.0f / (float) (step);
+    default: return 800.0f / (float) (step * step * step);
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -117,7 +119,7 @@ static float dampingFactorOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 0.21f / ((float) (step));
+    default: return -1.6f / ((float) (step * step * step));
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -278,7 +280,7 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
             {
               Particle p;
               p.pos = {((float) i * spacing.x) / (float) mWidth,
-                       ((float) j * spacing.y) / (float) mHeight,
+                       -(((float) j * spacing.y) / (float) mHeight),
                        0.0f};
 
               p.mass = mass;
@@ -311,7 +313,7 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
   mSpringDampers.clear();
   connectInSteps(1, type);
   connectInSteps(2, type);
-  connectInSteps(4, type);
+  //connectInSteps(4, type);
   //connectInSteps(8, type);
 
   std::vector<size_t> frontFacingTopRightBottomLeft(0);
@@ -464,7 +466,7 @@ void dmp::Cloth::buildObjectImpl(size_t matIdx,
                                      matIdx, texIdx, GL_DYNAMIC_DRAW);
 }
 
-void dmp::Cloth::update(glm::mat4 M, float inDeltaT)
+void dmp::Cloth::update(glm::mat4 M, float deltaT)
 {
   // First attempt to move all fixed particles per the scene graph
   for (auto & curr : mParticles)
@@ -475,7 +477,9 @@ void dmp::Cloth::update(glm::mat4 M, float inDeltaT)
         }
     }
 
-  for (float deltaT = inDeltaT; deltaT > 0.0f; deltaT -= maxDeltaT)
+  auto step = deltaT;
+  if (step > maxDeltaT) step = maxDeltaT;
+  while (true)
     {
       // Then accumulate all forces
       for (auto & curr : mParticles)
@@ -493,8 +497,17 @@ void dmp::Cloth::update(glm::mat4 M, float inDeltaT)
       // Finally integrate motion
       for (auto & curr : mParticles)
         {
-          curr.integrate(maxDeltaT);
+          curr.integrate(step);
         }
+
+      deltaT -= step;
+      if (deltaT > step) continue;
+
+      for (auto & curr : mParticles)
+        {
+          curr.integrate(deltaT);
+        }
+      break;
     }
 
   regenerateTriangleData();

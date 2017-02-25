@@ -6,7 +6,7 @@
 #include "../util.hpp"
 
 static const float maxDeltaT = 1.0f / 240.0f;
-static const float speedLimit = 30.0f;
+static const float speedLimit = 10.0f;
 
 void dmp::Particle::accumulateForce(glm::vec3 inForce)
 {
@@ -313,8 +313,8 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
   mSpringDampers.clear();
   connectInSteps(1, type);
   connectInSteps(2, type);
-  //connectInSteps(4, type);
-  //connectInSteps(8, type);
+  connectInSteps(4, type);
+  connectInSteps(8, type);
 
   std::vector<size_t> frontFacingTopRightBottomLeft(0);
   std::vector<size_t> frontFacingTopLeftBottomRight(0);

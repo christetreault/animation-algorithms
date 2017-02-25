@@ -28,8 +28,10 @@ namespace dmp
     void clearForce() {force = {};}
     void accumulateForce(glm::vec3 inForce);
     void integrate(float deltaT);
+    void integrateExplicitEuler(float deltaT);
+    void integrateAdamsBashforth(float deltaT);
     glm::vec3 force = {0.0f, 0.0f, 0.0f};
-
+    glm::vec3 forcePrev = {0.0f, 0.0f, 0.0f};
     bool fixed = false;
 
     std::vector<glm::vec3> participatingNormals = {};

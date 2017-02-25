@@ -11,7 +11,7 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
                        const CommandLine & c)
 {
   graph = std::make_unique<Branch>();
-  Cloth cloth(50, 50, ClothPrefab::banner);
+  Cloth cloth(25, 25, ClothPrefab::banner);
   cloth.buildObject(objects, 1, 0);
   graph->insert(std::move(cloth));
 

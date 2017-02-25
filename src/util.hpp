@@ -263,6 +263,14 @@ namespace dmp
             < epsilon);
   }
 
+  inline float mod(float lhs, float rhs)
+  {
+    if (rhs == 0.0f) return rhs;
+    auto m = fmodf(lhs, rhs);
+    if (m < 0.0f) m += rhs;
+    return m;
+  }
+
   template <typename K, typename T>
   void mapUnion(const std::map<K, T> & lhs,
                 const std::map<K, T> & rhs,

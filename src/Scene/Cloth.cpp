@@ -5,7 +5,8 @@
 
 #include "../util.hpp"
 
-static const float maxDeltaT = 1.0f / 400.0f;
+static const float maxDeltaT = 1.0f / 120.0f;
+static const float speedLimit = 30.0f;
 
 void dmp::Particle::accumulateForce(glm::vec3 inForce)
 {
@@ -13,16 +14,52 @@ void dmp::Particle::accumulateForce(glm::vec3 inForce)
   force += inForce;
 }
 
-void dmp::Particle::integrate(float deltaT)
+void dmp::Particle::integrateExplicitEuler(float deltaT)
 {
-  if (fixed) return;
   auto acceleration = force / mass;
 
   auto vNext = velocity + acceleration * deltaT;
   auto pNext = pos + vNext * deltaT;
-  force = {0.0f, 0.0f, 0.0f};
   velocity = vNext;
   pos = pNext;
+}
+
+void dmp::Particle::integrateAdamsBashforth(float deltaT)
+{
+  auto accelerationCurr = force / mass;
+  auto accelerationPrev = forcePrev / mass;
+
+  auto vNext = velocity +
+    ((deltaT / 2.0f) * ((3.0f * accelerationCurr) - accelerationPrev));
+  auto pNext = pos +
+    ((deltaT / 2.0f) * ((3.0f * vNext) - velocity));
+  forcePrev = force;
+  velocity = vNext;
+  pos = pNext;
+}
+
+void dmp::Particle::integrate(float deltaT)
+{
+  if (fixed) return;
+
+  auto speed = fabsf(glm::length(velocity));
+  auto step = deltaT;
+  if (speed > speedLimit) step = deltaT * (speedLimit / speed);
+  size_t iterations = 0;
+  while (true)
+    {
+      ++iterations;
+      integrateAdamsBashforth(step);
+
+      deltaT -= step;
+      if (deltaT > step) continue;
+
+      expect("iterations less than 100", iterations < 100);
+      integrateAdamsBashforth(deltaT);
+      break;
+    }
+
+  force = {0.0f, 0.0f, 0.0f};
 }
 
 void dmp::SpringDamper::accumulateForces()
@@ -69,7 +106,7 @@ static float springConstantOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 1500.0f / (float) step;
+    default: return 100.0f / (float) (step);
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -80,7 +117,7 @@ static float dampingFactorOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 5.0f * (1.0f / ((float) (step * step)));
+    default: return 0.21f / ((float) (step));
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -274,6 +311,8 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
   mSpringDampers.clear();
   connectInSteps(1, type);
   connectInSteps(2, type);
+  connectInSteps(4, type);
+  //connectInSteps(8, type);
 
   std::vector<size_t> frontFacingTopRightBottomLeft(0);
   std::vector<size_t> frontFacingTopLeftBottomRight(0);

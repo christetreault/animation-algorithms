@@ -562,14 +562,6 @@ float dmp::Channel::evaluateImpl(float t)
   return cc.w + u * (cc.z + u * (cc.y + u * (cc.x)));
 }
 
-static float mod(float lhs, float rhs)
-{
-  if (rhs == 0.0f) return rhs;
-  auto m = fmodf(lhs, rhs);
-  if (m < 0.0f) m += rhs;
-  return m;
-}
-
 float dmp::Channel::evaluate(float t)
 {
   auto startTime = mData.keyframes.front().time;

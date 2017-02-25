@@ -11,10 +11,12 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
                        const CommandLine & c)
 {
   graph = std::make_unique<Branch>();
-  cloth = std::make_unique<Cloth>(100, 100, 2, ClothPrefab::banner);
+  Cloth cloth(50, 50, ClothPrefab::banner);
+  cloth.buildObject(objects, 1, 0);
+  graph->insert(std::move(cloth));
+
   std::string notex = "";
   textures.emplace_back(notex);
-  cloth->buildObject(graph.get(), objects, 1, 0);
   Object::sortByMaterial(objects);
 
   materials.push_back( // Ruby = 0

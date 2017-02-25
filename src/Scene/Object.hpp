@@ -60,6 +60,8 @@ namespace dmp
       glDeleteVertexArrays(1, &mVAO);
       glDeleteBuffers(1, &mVBO);
       if (mHasIndices) glDeleteBuffers(1, &mEBO);
+
+      mValid = false;
     }
 
     Object(std::vector<ObjectVertex> verts,

@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include "Object.hpp"
+#include "Cloth.hpp"
 #include "Camera.hpp"
 
 
@@ -37,6 +38,7 @@ namespace dmp
     void operator()(CameraPos & cam) const;
     void operator()(CameraFocus & cam) const;
     void operator()(Light & lit) const;
+    void operator()(Cloth & clo) const;
 
     float mDeltaT;
     glm::mat4 mM;
@@ -51,7 +53,8 @@ namespace dmp
     Container(CameraPos & cam) : mValue(cam) {}
     Container(CameraFocus & cam) : mValue(cam) {}
     Container(Light & lit) : mValue(lit) {}
-    boost::variant<Object, CameraPos &, CameraFocus &, Light &> mValue;
+    Container(Cloth clo) : mValue(std::move(clo)) {}
+    boost::variant<Object, Cloth, CameraPos &, CameraFocus &, Light &> mValue;
   private:
     void updateImpl(float deltaT, glm::mat4 M, bool dirty) override;
 
@@ -75,6 +78,7 @@ namespace dmp
     Light * insert(Light & l);
     CameraPos * insert(CameraPos & c);
     CameraFocus * insert(CameraFocus & c);
+    Cloth * insert(Cloth c);
     Node * insert(std::unique_ptr<Node> & n);
     Transform * insert(std::unique_ptr<Transform> & t);
     Branch * insert(std::unique_ptr<Branch> & b);
@@ -111,6 +115,7 @@ namespace dmp
     Light * insert(Light & l);
     CameraPos * insert(CameraPos & c);
     CameraFocus * insert(CameraFocus & c);
+    Cloth * insert(Cloth c);
 
     Transform * transform();
     Transform * transform(glm::mat4);

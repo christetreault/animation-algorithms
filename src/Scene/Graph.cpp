@@ -26,6 +26,11 @@ void ContainerVisitor::operator()(Light & lit) const
   lit.M = mM;
 }
 
+void ContainerVisitor::operator()(Cloth & clo) const
+{
+  clo.update(mM, mDeltaT);
+}
+
 // -----------------------------------------------------------------------------
 // Container
 // -----------------------------------------------------------------------------
@@ -33,8 +38,8 @@ void ContainerVisitor::operator()(Light & lit) const
 void Container::updateImpl(float deltaT, glm::mat4 M, bool dirty)
 {
   if (dirty
-      || mValue.which() == 1)
-    {
+      || mValue.which() == 1) // mValue.which() == 1 -> Cloth. Should always
+    {                         // update because wind, gravity, etc...
       boost::apply_visitor(ContainerVisitor(deltaT, M, dirty), mValue);
     }
 }
@@ -47,6 +52,12 @@ Object * Transform::insert(Object o)
 {
   mChild = std::make_unique<Container>(o);
   return &(boost::get<Object>(((Container *) mChild.get())->mValue));
+}
+
+Cloth * Transform::insert(Cloth c)
+{
+  mChild = std::make_unique<Container>(std::move(c));
+  return &(boost::get<Cloth>(((Container *) mChild.get())->mValue));
 }
 
 Light * Transform::insert(Light & l)
@@ -201,4 +212,10 @@ CameraFocus * Branch::insert(CameraFocus & c)
 {
   mChildren.push_back(std::make_unique<Container>(c));
   return &(boost::get<CameraFocus &>(((Container *) mChildren.back().get())->mValue));
+}
+
+Cloth * Branch::insert(Cloth c)
+{
+  mChildren.push_back(std::make_unique<Container>(std::move(c)));
+  return &(boost::get<Cloth>(((Container *) mChildren.back().get())->mValue));
 }

@@ -4,16 +4,16 @@
 #include <vector>
 #include <list>
 #include <utility>
+#include <memory>
 #include <glm/glm.hpp>
 
 #include "Object.hpp"
-#include "Graph.hpp"
 
 namespace dmp
 {
   enum class ClothPrefab
   {
-    flag, banner, rope, cube
+    banner, rope, cube
   };
 
   struct Particle
@@ -26,12 +26,11 @@ namespace dmp
     float momentum = 0.0f;
 
     void clearForce() {force = {};}
-    void accumulateForce(glm::vec3 inForce) { force += inForce; }
+    void accumulateForce(glm::vec3 inForce);
     void integrate(float deltaT);
     glm::vec3 force = {0.0f, 0.0f, 0.0f};
 
     bool fixed = false;
-    bool exterior = false;
 
     std::vector<glm::vec3> participatingNormals = {};
   };
@@ -71,30 +70,27 @@ namespace dmp
     Cloth(Cloth &&) = default;
     Cloth & operator=(Cloth &&) = default;
 
-    Cloth(size_t width, size_t height, size_t depth, ClothPrefab type);
+    Cloth(size_t width, size_t height, ClothPrefab type);
 
-    void buildObject(Transform * xform,
-                     std::vector<Object *> & objects,
+    void buildObject(std::vector<Object *> & objects,
                      size_t matIdx,
                      size_t texIdx);
-    void buildObject(Branch * branch,
-                     std::vector<Object *> & objects,
-                     size_t matIdx,
-                     size_t texIdx);
-    Particle & getParticle(size_t i, size_t j, size_t k);
+    Particle & getParticle(size_t i, size_t j);
+
+    void update(glm::mat4 M, float deltaT);
   private:
     void regenerateTriangleData();
     void collapseNormals();
-    size_t getIndex(size_t i, size_t j, size_t k);
+    size_t getIndex(size_t i, size_t j);
     void connectInSteps(size_t step, ClothPrefab type);
-    void makeSpring(size_t i1, size_t j1, size_t k1,
-                    size_t i2, size_t j2, size_t k2,
-                    ClothPrefab type);
-    float getParticleDist(size_t i1, size_t j1, size_t k1,
-                          size_t i2, size_t j2, size_t k2);
-    Object buildObjectImpl(size_t matIdx,
-                           size_t texIdx);
-    Object * mObject = nullptr;
+    void makeSpring(size_t i1, size_t j1,
+                    size_t i2, size_t j2,
+                    size_t step, ClothPrefab type);
+    float getParticleDist(size_t i1, size_t j1,
+                          size_t i2, size_t j2);
+    void buildObjectImpl(size_t matIdx,
+                         size_t texIdx);
+    std::unique_ptr<Object> mObject = nullptr;
 
     std::vector<Particle> mParticles;
     std::vector<SpringDamper> mSpringDampers;
@@ -114,7 +110,6 @@ namespace dmp
     std::vector<Triangle> mTriangles;
     size_t mHeight;
     size_t mWidth;
-    size_t mDepth;
   };
 
 

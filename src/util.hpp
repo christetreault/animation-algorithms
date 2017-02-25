@@ -12,6 +12,7 @@
 #include <math.h>
 #include <map>
 #include <boost/assert.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 // Exectue a statement IFF built in release mode (NDEBUG is definend)
 // define ifRelease

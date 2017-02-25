@@ -2,7 +2,7 @@
 .PHONY := all build rebuild clean debug release
 OS_NAME := $(shell uname)
 
-PROG_NAME = animation
+PROG_NAME = cloth
 SRC_DIR = src
 RES_DIR = res
 SHADER_DIR = $(RES_DIR)/shaders

@@ -5,6 +5,26 @@
 
 #include "../util.hpp"
 
+static const float maxDeltaT = 1.0f / 400.0f;
+
+void dmp::Particle::accumulateForce(glm::vec3 inForce)
+{
+  if (fixed) return;
+  force += inForce;
+}
+
+void dmp::Particle::integrate(float deltaT)
+{
+  if (fixed) return;
+  auto acceleration = force / mass;
+
+  auto vNext = velocity + acceleration * deltaT;
+  auto pNext = pos + vNext * deltaT;
+  force = {0.0f, 0.0f, 0.0f};
+  velocity = vNext;
+  pos = pNext;
+}
+
 void dmp::SpringDamper::accumulateForces()
 {
   auto e = p2.pos - p1.pos;
@@ -17,17 +37,14 @@ void dmp::SpringDamper::accumulateForces()
   auto f = fsd * eHat;
   p1.accumulateForce(f);
   p2.accumulateForce(-f);
-}
 
-void dmp::Particle::integrate(float deltaT)
-{
-  auto acceleration = force / mass;
-
-  auto vNext = velocity + acceleration * deltaT;
-  auto pNext = pos + vNext * deltaT;
-  force = {0.0f, 0.0f, 0.0f};
-  velocity = vNext;
-  pos = pNext;
+  // std::cerr << "fsd: " << fsd << std::endl;
+  // std::cerr << "springConstant: " << springConstant << std::endl;
+  // std::cerr << "dampingFactor: " << dampingFactor << std::endl;
+  // std::cerr << "rest length: " << restLength << std::endl;
+  // std::cerr << "eHat: " << glm::to_string(eHat) << std::endl;
+  //std::cerr << "p1.velocity: " << glm::to_string(p1.velocity) << std::endl;
+  //std::cerr << "p2.velocity: " << glm::to_string(p2.velocity) << std::endl;
 }
 
 void dmp::accumulateUniformGravity(dmp::Particle & p)
@@ -41,52 +58,40 @@ static float massOf(dmp::ClothPrefab p)
   using namespace dmp;
   switch(p)
     {
-    case ClothPrefab::flag: return 1.0f;
-    case ClothPrefab::banner: return 1.0f;
-    case ClothPrefab::rope: return 1.0f;
-    case ClothPrefab::cube: return 1.0f;
+    default: return 0.1f;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
 }
 
-static float springConstantOf(dmp::ClothPrefab p)
+static float springConstantOf(dmp::ClothPrefab p, size_t step)
 {
   using namespace dmp;
   switch(p)
     {
-    case ClothPrefab::flag: return 1.0f;
-    case ClothPrefab::banner: return 1.0f;
-    case ClothPrefab::rope: return 1.0f;
-    case ClothPrefab::cube: return 1.0f;
+    default: return 1500.0f / (float) step;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
 }
 
-static float dampingFactorOf(dmp::ClothPrefab p)
+static float dampingFactorOf(dmp::ClothPrefab p, size_t step)
 {
   using namespace dmp;
   switch(p)
     {
-    case ClothPrefab::flag: return 1.0f;
-    case ClothPrefab::banner: return 1.0f;
-    case ClothPrefab::rope: return 1.0f;
-    case ClothPrefab::cube: return 1.0f;
+    default: return 5.0f * (1.0f / ((float) (step * step)));
     }
   impossible("non-exhaustive switch");
   return 0.0f;
 }
 
-static glm::vec3 spacingOf(dmp::ClothPrefab p)
+static glm::vec2 spacingOf(dmp::ClothPrefab p)
 {
   using namespace dmp;
   switch(p)
     {
-    case ClothPrefab::flag: return {0.01f, 0.01f, 0.01f};
-    case ClothPrefab::banner: return {0.01f, 0.01f, 0.001f};
-    case ClothPrefab::rope: return {1.0f, 1.0f, 1.0f};
-    case ClothPrefab::cube: return {1.0f, 1.0f, 1.0f};
+    default: return {1.0f, 1.0f};
     }
   impossible("non-exhaustive switch");
   return {};
@@ -97,75 +102,69 @@ static float dragCoeffOf(dmp::ClothPrefab p)
   using namespace dmp;
   switch(p)
     {
-    case ClothPrefab::flag: return 1.0f;
-    case ClothPrefab::banner: return 1.0f;
-    case ClothPrefab::rope: return 1.0f;
-    case ClothPrefab::cube: return 1.0f;
+    default: return 1.0f;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
 }
 
-size_t dmp::Cloth::getIndex(size_t i, size_t j, size_t k)
+size_t dmp::Cloth::getIndex(size_t i, size_t j)
 {
-  return (k * mWidth * mHeight) + (j * mWidth) + i;
+  return (j * mWidth) + i;
 }
 
-dmp::Particle & dmp::Cloth::getParticle(size_t i, size_t j, size_t k)
+dmp::Particle & dmp::Cloth::getParticle(size_t i, size_t j)
 {
-  return mParticles[getIndex(i, j, k)];
+  return mParticles[getIndex(i, j)];
 }
 
-float dmp::Cloth::getParticleDist(size_t i1, size_t j1, size_t k1,
-                                  size_t i2, size_t j2, size_t k2)
+float dmp::Cloth::getParticleDist(size_t i1, size_t j1,
+                                  size_t i2, size_t j2)
 {
-  auto p1 = getParticle(i1, j1, k1);
-  auto p2 = getParticle(i2, j2, k2);
+  auto p1 = getParticle(i1, j1);
+  auto p2 = getParticle(i2, j2);
 
   return glm::distance(p1.pos, p2.pos);
 }
 
-void dmp::Cloth::makeSpring(size_t i1, size_t j1, size_t k1,
-                            size_t i2, size_t j2, size_t k2,
-                            ClothPrefab type)
+void dmp::Cloth::makeSpring(size_t i1, size_t j1,
+                            size_t i2, size_t j2,
+                            size_t step, ClothPrefab type)
 {
-  auto springConstant = springConstantOf(type);
-  auto dampingFactor = dampingFactorOf(type);
+  auto springConstant = springConstantOf(type, step);
+  auto dampingFactor = dampingFactorOf(type, step);
 
   SpringDamper sd = {springConstant,
                      dampingFactor,
-                     getParticleDist(i1, j1, k1, i2, j2, k2),
-                     getParticle(i1, j1, k1),
-                     getParticle(i2, j2, k2)};
+                     getParticleDist(i1, j1, i2, j2),
+                     getParticle(i1, j1),
+                     getParticle(i2, j2)};
 
   mSpringDampers.push_back(sd);
 }
 
 struct Connection
 {
-  size_t x1, y1, z1, x2, y2, z2;
+  size_t x1, y1, x2, y2;
 
-  Connection offset(size_t x, size_t y, size_t z) const
+  Connection offset(size_t x, size_t y) const
   {
     Connection retval;
     retval.x1 = x + x1;
     retval.x2 = x + x2;
     retval.y1 = y + y1;
     retval.y2 = y + y2;
-    retval.z1 = z + z1;
-    retval.z2 = z + z2;
     return retval;
   }
 };
 
 bool operator< (const Connection & lhs, const Connection & rhs)
 {
-  return (lhs.x1 < rhs.x1)
-    && (lhs.x2 < rhs.x2)
-    && (lhs.y1 < rhs.y1)
-    && (lhs.y2 < rhs.y2)
-    && (lhs.z1 < rhs.z1)
-    && (lhs.z2 < rhs.z2);
+  if (lhs.x1 < rhs.x1) return true;
+  else if (lhs.x2 < rhs.x2) return true;
+  else if (lhs.y1 < rhs.y1) return true;
+  else if (lhs.y2 < rhs.y2) return true;
+  else return false;
 };
 
 
@@ -174,62 +173,63 @@ void dmp::Cloth::connectInSteps(size_t step, ClothPrefab type)
 {
   std::set<Connection> connections =
     {
-      {0, 0, 0, 0, 0, step},
-      {0, 0, 0, 0, step, 0},
-      {0, 0, 0, 0, step, step},
-      {0, 0, 0, step, 0, 0},
-      {0, 0, 0, step, 0, step},
-      {0, 0, 0, step, step, 0},
-      {0, 0, 0, step, step, step},
-      {step, 0, 0, 0, 0, step},
-      {step, 0, 0, 0, step, 0},
-      {step, 0, 0, 0, step, step},
-      {0, step, 0, 0, 0, step},
-      {0, step, 0, step, 0, 0},
-      {0, step, 0, step, 0, step},
-      {0, 0, step, 0, step, 0},
-      {0, 0, step, step, 0, 0},
-      {0, 0, step, step, step, 0}
+      {0, 0, 0, step},
+      {0, 0, step, 0},
+      {0, 0, step, step},
+      {step, 0, 0, step},
     };
+  //std::cerr << "sizeof connections = " << connections.size() << std::endl;
   for (size_t x = 0; x < mWidth; x = x + step)
     {
       for (size_t y = 0; y < mHeight; y = y + step)
         {
-          for (size_t z = 0; z < mDepth; z = z + step)
+          //std::cerr << "<x, y, z> = <" << x << ", " << y << ", " << z << ">" <<std::endl;
+          //size_t count = 0;
+          for (const auto & curr : connections)
             {
-              for (const auto & curr : connections)
-                {
-                  auto conn = curr.offset(x, y, z);
+              auto conn = curr.offset(x, y);
 
-                  if (conn.x1 < mWidth
-                      && conn.x2 < mWidth
-                      && conn.y1 < mHeight
-                      && conn.y2 < mHeight
-                      && conn.z1 < mDepth
-                      && conn.z2 < mDepth)
-                    {
-                      makeSpring(conn.x1, conn.y1, conn.z1,
-                                 conn.x2, conn.y2, conn.z2,
-                                 type);
-                    }
+              //std::cerr << conn.x1 << "->" << conn.x2;
+              //std::cerr << " " << conn.y1 << "->" << conn.y2;
+              //std::cerr << " " << conn.z1 << "->" << conn.z2 << std::endl;
+
+              if (conn.x1 < mWidth
+                  && conn.x2 < mWidth
+                  && conn.y1 < mHeight
+                  && conn.y2 < mHeight)
+                {
+                  //std::cerr << "taken" << std::endl;
+                  makeSpring(conn.x1, conn.y1,
+                             conn.x2, conn.y2,
+                             step, type);
                 }
+              //++count;
             }
+          //std::cerr << "counted: " << count << std::endl;
         }
     }
+  //std::cerr << "sizeof springs: " << mSpringDampers.size() << std::endl;
+  //for (const auto & curr : mSpringDampers)
+  //  {
+  //    std::cerr << "springConstant: " << curr.springConstant << std::endl;
+  //    std::cerr << "dampingFactor: " << curr.dampingFactor << std::endl;
+  //    std::cerr << "rest length: " << curr.restLength << std::endl;
+  //    std::cerr << "p1: " << glm::to_string(curr.p1.pos) << std::endl;
+  //    std::cerr << "p2: " << glm::to_string(curr.p2.pos) << std::endl;
+  //  }
 }
 
-dmp::Cloth::Cloth(size_t width, size_t height, size_t depth, ClothPrefab type)
+dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
 {
   mHeight = height;
   mWidth = width;
-  mDepth = depth;
 
   if (type == ClothPrefab::rope || type == ClothPrefab::cube)
     {
       todo("Implement rope and cube");
     }
 
-  mParticles.resize(width * height * depth);
+  mParticles.resize(width * height);
 
   auto spacing = spacingOf(type);
   auto mass = massOf(type);
@@ -237,50 +237,48 @@ dmp::Cloth::Cloth(size_t width, size_t height, size_t depth, ClothPrefab type)
     {
       for (size_t j = 0; j < height; ++j)
         {
-          for (size_t k = 0; k < depth; ++k)
+          if (type == ClothPrefab::banner)
             {
-              if (type == ClothPrefab::banner || type == ClothPrefab::flag)
+              Particle p;
+              p.pos = {((float) i * spacing.x) / (float) mWidth,
+                       ((float) j * spacing.y) / (float) mHeight,
+                       0.0f};
+
+              p.mass = mass;
+
+              if (j == 0 && i == 0 && type == ClothPrefab::banner)
                 {
-                  Particle p;
-                  p.pos = {(float) i * spacing.x,
-                           (float) j * spacing.y,
-                           (float) k * spacing.z};
-
-                  p.mass = mass;
-
-                  if (i == 0) p.exterior = true;
-                  if (i == width - 1) p.exterior = true;
-                  if (j == 0) p.exterior = true;
-                  if (j == height - 1) p.exterior = true;
-                  if (k == 0) p.exterior = true;
-                  if (k == depth - 1) p.exterior = true;
-
-                  if (i == 0)
-                    {
-                      if (j == 0)
-                        {
-                          p.fixed = true;
-                        }
-                      else if (j == height - 1 && type == ClothPrefab::flag)
-                        {
-                          p.fixed = true;
-                        }
-                    }
-                  else if (i == width - 1 && j == 0 && type == ClothPrefab::banner)
-                    {
-                      p.fixed = true;
-                    }
-
-                  getParticle(i, j, k) = p;
+                  p.fixed = true;
                 }
+              else if (j == 0 && i == width / 4 && type == ClothPrefab::banner)
+                {
+                  p.fixed = true;
+                }
+              else if (j == 0 && i == width / 2 && type == ClothPrefab::banner)
+                {
+                  p.fixed = true;
+                }
+              else if (j == 0 && i == (width / 2) + (width / 4) && type == ClothPrefab::banner)
+                {
+                  p.fixed = true;
+                }
+              else if (j == 0 && i == width - 1 && type == ClothPrefab::banner)
+                {
+                  p.fixed = true;
+                }
+              getParticle(i, j) = p;
             }
         }
     }
 
+  mSpringDampers.clear();
   connectInSteps(1, type);
+  connectInSteps(2, type);
 
-  std::vector<size_t> topRightBottomLeft(0);
-  std::vector<size_t> topLeftBottomRight(0);
+  std::vector<size_t> frontFacingTopRightBottomLeft(0);
+  std::vector<size_t> frontFacingTopLeftBottomRight(0);
+  std::vector<size_t> backFacingTopRightBottomLeft(0);
+  std::vector<size_t> backFacingTopLeftBottomRight(0);
 
   for (size_t x = 0; x < mWidth - 1; ++x)
     {
@@ -288,169 +286,70 @@ dmp::Cloth::Cloth(size_t width, size_t height, size_t depth, ClothPrefab type)
         {
           // topLeft / bottomRight
 
-          size_t z = 0;
+          frontFacingTopLeftBottomRight.push_back(getIndex(x, y));
+          frontFacingTopLeftBottomRight.push_back(getIndex(x, y + 1));
+          frontFacingTopLeftBottomRight.push_back(getIndex(x + 1, y));
 
-          topLeftBottomRight.push_back(getIndex(x, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
+          frontFacingTopLeftBottomRight.push_back(getIndex(x + 1, y + 1));
+          frontFacingTopLeftBottomRight.push_back(getIndex(x + 1, y));
+          frontFacingTopLeftBottomRight.push_back(getIndex(x, y + 1));
 
-          topLeftBottomRight.push_back(getIndex(x + 1, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
+          backFacingTopLeftBottomRight.push_back(getIndex(x + 1, y));
+          backFacingTopLeftBottomRight.push_back(getIndex(x, y + 1));
+          backFacingTopLeftBottomRight.push_back(getIndex(x, y));
 
-          z = mDepth - 1;
-
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z));
-
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-          topLeftBottomRight.push_back(getIndex(x + 1, y + 1, z));
+          backFacingTopLeftBottomRight.push_back(getIndex(x, y + 1));
+          backFacingTopLeftBottomRight.push_back(getIndex(x + 1, y));
+          backFacingTopLeftBottomRight.push_back(getIndex(x + 1, y + 1));
 
           // topRight / bottomLeft
 
-          z = 0;
+          frontFacingTopRightBottomLeft.push_back(getIndex(x, y));
+          frontFacingTopRightBottomLeft.push_back(getIndex(x + 1, y + 1));
+          frontFacingTopRightBottomLeft.push_back(getIndex(x + 1, y));
 
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y + 1, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z));
+          frontFacingTopRightBottomLeft.push_back(getIndex(x + 1, y + 1));
+          frontFacingTopRightBottomLeft.push_back(getIndex(x, y));
+          frontFacingTopRightBottomLeft.push_back(getIndex(x, y + 1));
 
-          topRightBottomLeft.push_back(getIndex(x + 1, y + 1, z));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z));
+          backFacingTopRightBottomLeft.push_back(getIndex(x + 1, y));
+          backFacingTopRightBottomLeft.push_back(getIndex(x + 1, y + 1));
+          backFacingTopRightBottomLeft.push_back(getIndex(x, y));
 
-          z = mDepth - 1;
-
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y + 1, z));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y + 1, z));
-
-        }
-    }
-
-  for (size_t y = 0; y < mHeight - 1; ++y)
-    {
-      for (size_t z = 0; z < mDepth - 1; ++z)
-        {
-          // topLeft / bottomRight
-
-          size_t x = 0;
-
-          topLeftBottomRight.push_back(getIndex(x, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z + 1));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-
-          x = mWidth - 1;
-
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x, y, z));
-
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z));
-          topLeftBottomRight.push_back(getIndex(x, y + 1, z + 1));
-
-          // topRight / bottomLeft
-
-          x = 0;
-
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z + 1));
-
-          topRightBottomLeft.push_back(getIndex(x, y, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-
-          x = mWidth - 1;
-
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z));
-
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x, y + 1, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y, z + 1));
-
-        }
-    }
-
-  for (size_t x = 0; x < mWidth - 1; ++x)
-    {
-      for (size_t z = 0; z < mDepth - 1; ++z)
-        {
-          // topLeft / bottomRight
-
-          size_t y = 0;
-
-          topLeftBottomRight.push_back(getIndex(x, y, z));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-
-          y = mHeight - 1;
-
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z));
-
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z));
-          topLeftBottomRight.push_back(getIndex(x, y, z + 1));
-          topLeftBottomRight.push_back(getIndex(x + 1, y, z + 1));
-
-          // topRight / bottomLeft
-
-          y = 0;
-
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y, z + 1));
-
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z));
-
-          y = mHeight - 1;
-
-          topRightBottomLeft.push_back(getIndex(x, y, z + 1));
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z + 1));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z));
-          topRightBottomLeft.push_back(getIndex(x, y, z));
-          topRightBottomLeft.push_back(getIndex(x + 1, y, z + 1));
+          backFacingTopRightBottomLeft.push_back(getIndex(x, y + 1));
+          backFacingTopRightBottomLeft.push_back(getIndex(x, y));
+          backFacingTopRightBottomLeft.push_back(getIndex(x + 1, y + 1));
 
         }
     }
 
   mIdxs.resize(0);
   mIdxs.insert(mIdxs.end(),
-               topLeftBottomRight.begin(),
-               topLeftBottomRight.end());
+               frontFacingTopLeftBottomRight.begin(),
+               frontFacingTopLeftBottomRight.end());
   mIdxs.insert(mIdxs.end(),
-               topRightBottomLeft.begin(),
-               topRightBottomLeft.end());
+               backFacingTopLeftBottomRight.begin(),
+               backFacingTopLeftBottomRight.end());
+  mIdxs.insert(mIdxs.end(),
+               frontFacingTopRightBottomLeft.begin(),
+               frontFacingTopRightBottomLeft.end());
+  mIdxs.insert(mIdxs.end(),
+               backFacingTopRightBottomLeft.begin(),
+               backFacingTopRightBottomLeft.end());
+
+  std::vector<size_t> triIdxs = frontFacingTopLeftBottomRight;
+  triIdxs.insert(triIdxs.end(),
+                 frontFacingTopRightBottomLeft.begin(),
+                 frontFacingTopRightBottomLeft.end());
 
 
-  for (size_t i = 0; i < mIdxs.size(); i = i + 3)
+  for (size_t i = 0; i < triIdxs.size(); i = i + 3)
     {
       Triangle tri = {};
       tri.dragCoeff = dragCoeffOf(type);
-      tri.p1 = &(mParticles[mIdxs[i]]);
-      tri.p2 = &(mParticles[mIdxs[i+1]]);
-      tri.p3 = &(mParticles[mIdxs[i+2]]);
+      tri.p1 = &(mParticles[triIdxs[i]]);
+      tri.p2 = &(mParticles[triIdxs[i+1]]);
+      tri.p3 = &(mParticles[triIdxs[i+2]]);
       mTriangles.push_back(tri);
     }
 }
@@ -486,28 +385,18 @@ void dmp::Cloth::collapseNormals()
     }
 }
 
-void dmp::Cloth::buildObject(Transform * xform,
-                             std::vector<Object *> & objects,
+
+
+void dmp::Cloth::buildObject(std::vector<Object *> & objects,
                              size_t matIdx,
                              size_t texIdx)
 {
-  mObject = xform->insert(buildObjectImpl(matIdx, texIdx));
-  objects.push_back(mObject);
+  buildObjectImpl(matIdx, texIdx);
+  objects.push_back(mObject.get());
 }
 
-void dmp::Cloth::buildObject(Branch * branch,
-                             std::vector<Object *> & objects,
-                             size_t matIdx,
-                             size_t texIdx)
-{
-  auto obj = buildObjectImpl(matIdx, texIdx);
-  mObject = branch->insert(obj);
-  objects.push_back(mObject);
-  expect("didn't just push null", objects.back());
-}
-
-dmp::Object dmp::Cloth::buildObjectImpl(size_t matIdx,
-                                        size_t texIdx)
+void dmp::Cloth::buildObjectImpl(size_t matIdx,
+                                 size_t texIdx)
 {
   regenerateTriangleData();
   collapseNormals();
@@ -532,6 +421,57 @@ dmp::Object dmp::Cloth::buildObjectImpl(size_t matIdx,
       idxs.push_back((GLuint) mIdxs[i]);
     }
 
-  Object retval(verts, idxs, GL_TRIANGLES, matIdx, texIdx, GL_DYNAMIC_DRAW);
-  return retval;
+  mObject = std::make_unique<Object>(verts, idxs, GL_TRIANGLES,
+                                     matIdx, texIdx, GL_DYNAMIC_DRAW);
+}
+
+void dmp::Cloth::update(glm::mat4 M, float inDeltaT)
+{
+  // First attempt to move all fixed particles per the scene graph
+  for (auto & curr : mParticles)
+    {
+      if (curr.fixed)
+        {
+          curr.pos = glm::vec3(M * glm::vec4(curr.pos, 1.0f));
+        }
+    }
+
+  for (float deltaT = inDeltaT; deltaT > 0.0f; deltaT -= maxDeltaT)
+    {
+      // Then accumulate all forces
+      for (auto & curr : mParticles)
+        {
+          accumulateUniformGravity(curr);
+        }
+
+      for (auto & curr : mSpringDampers)
+        {
+          curr.accumulateForces();
+        }
+
+      // TODO: triangles and wind resistance
+
+      // Finally integrate motion
+      for (auto & curr : mParticles)
+        {
+          curr.integrate(maxDeltaT);
+        }
+    }
+
+  regenerateTriangleData();
+  collapseNormals();
+
+  // Now that the particles have moved, we need to update the Object
+
+  auto updateFn = [&](ObjectVertex * data,
+                      size_t numElems)
+    {
+      for (size_t i = 0; i < numElems; ++i)
+        {
+          if (mParticles[i].fixed) continue;
+          data[i].position = mParticles[i].pos;
+          data[i].normal = mParticles[i].normal;
+        }
+    };
+  mObject->updateVertices(updateFn);
 }

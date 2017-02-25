@@ -26,7 +26,6 @@ namespace dmp
     std::unique_ptr<UniformBuffer> objectConstants;
     std::unique_ptr<Branch> graph;
     std::unique_ptr<Skybox> skybox;
-    std::unique_ptr<Cloth> cloth;
 
     void build(std::function<bool(glm::mat4 &, float)> cameraFn,
                std::function<bool(glm::mat4 &, float)> lightFn,

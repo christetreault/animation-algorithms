@@ -6,7 +6,7 @@
 #include "../util.hpp"
 
 static const float maxDeltaT = 1.0f / 240.0f;
-static const float speedLimit = 10.0f;
+static const float speedLimit = 30.0f;
 
 void dmp::Particle::accumulateForce(glm::vec3 inForce)
 {
@@ -108,7 +108,7 @@ static float springConstantOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 1100.0f / (float) (step * step * step);
+    default: return 1000.0f / (float) (step * step * step);
     }
   impossible("non-exhaustive switch");
   return 0.0f;

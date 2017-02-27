@@ -18,7 +18,9 @@ namespace dmp
 
   struct Particle
   {
+    glm::vec3 posPrev = {0.0f, 0.0f, 0.0f};
     glm::vec3 pos = {0.0f, 0.0f, 0.0f};
+    glm::vec3 posNext = {0.0f, 0.0f, 0.0f};
     glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
     glm::vec3 normal = {0.0f, 0.0f, 0.0f};
 

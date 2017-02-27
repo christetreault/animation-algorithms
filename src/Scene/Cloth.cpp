@@ -6,7 +6,7 @@
 #include "../util.hpp"
 
 static const float maxDeltaT = 1.0f / 240.0f;
-static const float speedLimit = 30.0f;
+static const float speedLimit = 10.0f;
 
 void dmp::Particle::accumulateForce(glm::vec3 inForce)
 {
@@ -43,22 +43,36 @@ void dmp::Particle::integrate(float deltaT)
   if (fixed) return;
 
   auto speed = fabsf(glm::length(velocity));
-  auto step = deltaT;
-  if (speed > speedLimit) step = deltaT * (speedLimit / speed);
+
+  bool enteredLoop = false;
   size_t iterations = 0;
-  while (true)
+  for (float step = glm::min(speedLimit / speed, 1.0f);
+       step <= 1.0f;
+       step = step + glm::min(speedLimit / speed, 1.0f))
     {
+      enteredLoop = true;
       ++iterations;
-      integrateAdamsBashforth(step);
+      integrateAdamsBashforth(glm::mix(0.0f, deltaT, step));
+      // if (step < 0.01f)
+      //   {
+      //     std::cerr << "deltaT = " << deltaT << std::endl;
+      //     std::cerr << "step = " << step << std::endl;
+      //     std::cerr << "speed = " << speed << std::endl;
+      //     impossible("die");
+      //   }
+      //deltaT -= step;
+      //if (deltaT > step) continue;
 
-      deltaT -= step;
-      if (deltaT > step) continue;
-
-      expect("iterations less than 100", iterations < 100);
-      integrateAdamsBashforth(deltaT);
-      break;
+      // if (iterations >= 1000)
+      //   {
+      //     auto stepSize = glm::min(speedLimit / speed, 1.0f);
+      //     std::cerr << "step = " << stepSize << std::endl;
+      //     std::cerr << "deltaT = " << deltaT << std::endl;
+      //     std::cerr << "increment = " << glm::mix(0.0f, deltaT, stepSize) << std::endl;
+      //   }
+      expect("iterations less than 1000", iterations < 1000);
     }
-
+  expect("integrated at least once", enteredLoop);
   force = {0.0f, 0.0f, 0.0f};
 }
 
@@ -97,7 +111,7 @@ static float massOf(dmp::ClothPrefab p)
   using namespace dmp;
   switch(p)
     {
-    default: return 0.1f;
+    default: return 1.0f;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -108,7 +122,7 @@ static float springConstantOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 1000.0f / (float) (step * step * step);
+    default: return 2000.0f / (float) (step * step * step);
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -119,7 +133,7 @@ static float dampingFactorOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return -2.2f / ((float) (step * step * step));
+    default: return 10.0f / ((float) (step * step * step));
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -313,8 +327,8 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
   mSpringDampers.clear();
   connectInSteps(1, type);
   connectInSteps(2, type);
-  connectInSteps(4, type);
-  connectInSteps(8, type);
+  //connectInSteps(4, type);
+  //connectInSteps(8, type);
 
   std::vector<size_t> frontFacingTopRightBottomLeft(0);
   std::vector<size_t> frontFacingTopLeftBottomRight(0);
@@ -469,18 +483,32 @@ void dmp::Cloth::buildObjectImpl(size_t matIdx,
 void dmp::Cloth::update(glm::mat4 M, float deltaT)
 {
   // First attempt to move all fixed particles per the scene graph
+  // Find posNext as the goal position
+
+  std::list<Particle *> fixedParticles = {};
   for (auto & curr : mParticles)
     {
       if (curr.fixed)
         {
-          curr.pos = glm::vec3(M * glm::vec4(curr.pos, 1.0f));
+          curr.posPrev = curr.pos;
+          curr.posNext = glm::vec3(M * glm::vec4(curr.pos, 0.0f));
+          fixedParticles.push_back(&curr);
         }
     }
-
-  auto step = deltaT;
-  if (step > maxDeltaT) step = maxDeltaT;
-  while (true)
+  bool enteredLoop = false;
+  float step = glm::min(maxDeltaT / deltaT, 1.0f);
+  auto scaledDeltaT = glm::mix(0.0f, deltaT, step);
+  for (; step <= 1.0f;
+       step = step + glm::min(maxDeltaT / deltaT, 1.0f))
     {
+      enteredLoop = true;
+
+      // step the fixed particles towards posNext
+      for (auto curr : fixedParticles)
+        {
+          curr->pos = glm::mix(curr->posPrev, curr->posNext, step);
+        }
+
       // Then accumulate all forces
       for (auto & curr : mParticles)
         {
@@ -494,21 +522,13 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
 
       // TODO: triangles and wind resistance
 
-      // Finally integrate motion
+      // step the integration forward
       for (auto & curr : mParticles)
         {
-          curr.integrate(step);
+          curr.integrate(scaledDeltaT);
         }
-
-      deltaT -= step;
-      if (deltaT > step) continue;
-
-      for (auto & curr : mParticles)
-        {
-          curr.integrate(deltaT);
-        }
-      break;
     }
+  expect("integrated at least once", enteredLoop);
 
   regenerateTriangleData();
   collapseNormals();
@@ -520,7 +540,6 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
     {
       for (size_t i = 0; i < numElems; ++i)
         {
-          if (mParticles[i].fixed) continue;
           data[i].position = mParticles[i].pos;
           data[i].normal = mParticles[i].normal;
         }

@@ -20,6 +20,7 @@ namespace dmp
   {
     glm::vec3 posPrev = {0.0f, 0.0f, 0.0f};
     glm::vec3 pos = {0.0f, 0.0f, 0.0f};
+    glm::vec3 posInitial = {0.0f, 0.0f, 0.0f};
     glm::vec3 posNext = {0.0f, 0.0f, 0.0f};
     glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
     glm::vec3 normal = {0.0f, 0.0f, 0.0f};
@@ -57,12 +58,14 @@ namespace dmp
     glm::vec3 normal = {0.0f, 0.0f, 0.0f};
     glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
     float area = 0.0f;
-    float airDensity = 1.0f; // TODO: function of wind?
+    float airDensity = 0.0f; // TODO: function of wind?
     float dragCoeff = 0.0f;
 
     Particle * p1 = nullptr;
     Particle * p2 = nullptr;
     Particle * p3 = nullptr;
+
+    void accumulateDragForces(glm::vec3 velocityAir);
   };
 
   class Cloth
@@ -82,6 +85,7 @@ namespace dmp
     Particle & getParticle(size_t i, size_t j);
 
     void update(glm::mat4 M, float deltaT);
+    void setWind(glm::vec3 windDir);
   private:
     void regenerateTriangleData();
     void collapseNormals();
@@ -114,6 +118,7 @@ namespace dmp
     std::vector<Triangle> mTriangles;
     size_t mHeight;
     size_t mWidth;
+    glm::vec3 mWindDir;
   };
 
 

@@ -13,6 +13,18 @@ static const std::string HORIZONTAL = "horizontal";
 static const std::string VERTICAL = "vertical";
 static const std::string DISTANCE = "distance";
 
+static const std::string CLOTH_X = "clothX";
+static const std::string CLOTH_Y = "clothY";
+static const std::string CLOTH_THETA_Y = "clothThetaY";
+static const std::string CLOTH_THETA_Z = "clothThetaZ";
+static const float CLOTH_MAX = 1.0f;
+static const float CLOTH_MIN = -1.0f;
+static const float CLOTH_STEP = 0.1f;
+static const float CLOTH_THETA_MAX = glm::pi<float>();
+static const float CLOTH_THETA_MIN = -glm::pi<float>();
+static const float CLOTH_THETA_STEP = glm::pi<float>() * 0.05f;
+static const float CLOTH_LERP_LENGTH = 0.05f;
+
 static void errorCb(int error, const char * description)
 {
   std::cerr << "GLFW Error "
@@ -65,6 +77,7 @@ dmp::Program::Program(int width, int height,
           && roughEq(prevVert, vert)
           && roughEq(prevDist, dist)) return false;
 
+
       auto hRot = glm::rotate(glm::mat4(),
                               horz,
                               glm::vec3(0.0f, 1.0f, 0.0f));
@@ -83,6 +96,67 @@ dmp::Program::Program(int width, int height,
       return true;
     };
 
+  auto clothFn = [&] (glm::mat4 & M, float)
+    {
+      static float prevX = 0.0f;
+      static float prevY = 0.0f;
+      static float prevThetaY = 0.0f;
+      static float prevThetaZ = 0.0f;
+      auto x = mClothState[CLOTH_X];
+      auto y = mClothState[CLOTH_Y];
+      auto thetaY = mClothState[CLOTH_THETA_Y];
+      auto thetaZ = mClothState[CLOTH_THETA_Z];
+
+      if (roughEq(prevX, x)
+          && roughEq(prevY, y)
+          && roughEq(prevThetaY, thetaY)
+          && roughEq(prevThetaZ, thetaZ))
+        {
+          // if prev == curr, then we are not moving. Make sure
+          // rot/trans in progress are false and return
+          mClothMoveInProgress = false;
+          return false;
+        }
+
+      auto endTime = (mClothLerpBegin + CLOTH_LERP_LENGTH);
+      auto currTime = mTimer.time();
+      if (currTime > endTime)
+        {
+          // if currTime > endTime, then the lerp should be done.
+          // clear rot and trans in progress flags so we begin
+          // catching keypresses again
+          mClothMoveInProgress = false;
+          prevX = x;
+          prevY = y;
+          prevThetaY = thetaY;
+          prevThetaZ = thetaZ;
+          //std::cerr << "lerp ended" << std::endl;
+          return false;
+        }
+
+      auto t = endTime / currTime;
+
+      x = glm::mix(prevX, x, t);
+      y = glm::mix(prevY, y, t);
+      thetaY = glm::mix(prevThetaY, thetaY, t);
+      thetaZ = glm::mix(prevThetaZ, thetaZ, t);
+
+      auto trans = glm::translate(glm::mat4(), glm::vec3(x, y, 0.0f));
+      auto rotY = glm::rotate(glm::mat4(),
+                              thetaY,
+                              glm::vec3(0.0f, 1.0f, 0.0f));
+      auto rotZ = glm::rotate(glm::mat4(),
+                              thetaZ,
+                              glm::vec3(0.0f, 0.0f, 1.0f));
+
+      M = trans * rotY * rotZ;
+
+      //std::cerr << "<clothX, clothY, clothTheta> = <"
+      //<< x << ", " << y << ", " << theta << ">" << std::endl;
+
+      return true;
+    };
+
   auto lightFn = [&l=mLightCoeff](glm::mat4 & M, float deltaT)
     {
       M = glm::rotate(M,
@@ -92,7 +166,7 @@ dmp::Program::Program(int width, int height,
       return true;
     };
 
-  mScene.build(cameraFn, lightFn, file);
+  mScene.build(cameraFn, lightFn, clothFn, file);
 
   Keybind esc((GLFWwindow *) mWindow,
               [&](Keybind & k)
@@ -136,6 +210,107 @@ dmp::Program::Program(int width, int height,
                                 maxHorz);
                },
                GLFW_KEY_LEFT);
+  Keybind w(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_Y]
+                = glm::clamp(mClothState[CLOTH_Y] + CLOTH_STEP,
+                             CLOTH_MIN,
+                             CLOTH_MAX);
+            },
+            GLFW_KEY_W);
+  Keybind q(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_X]
+                = glm::clamp(mClothState[CLOTH_X] - CLOTH_STEP,
+                             CLOTH_MIN,
+                             CLOTH_MAX);
+            },
+            GLFW_KEY_Q);
+  Keybind s(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_Y]
+                = glm::clamp(mClothState[CLOTH_Y] - CLOTH_STEP,
+                             CLOTH_MIN,
+                             CLOTH_MAX);
+            },
+            GLFW_KEY_S);
+  Keybind e(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_X]
+                = glm::clamp(mClothState[CLOTH_X] + CLOTH_STEP,
+                             CLOTH_MIN,
+                             CLOTH_MAX);
+            },
+            GLFW_KEY_E);
+
+  Keybind a(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_THETA_Y]
+                = glm::clamp(mClothState[CLOTH_THETA_Y] + CLOTH_THETA_STEP,
+                             CLOTH_THETA_MIN,
+                             CLOTH_THETA_MAX);
+            },
+            GLFW_KEY_A);
+
+  Keybind d(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_THETA_Y]
+                = glm::clamp(mClothState[CLOTH_THETA_Y] - CLOTH_THETA_STEP,
+                             CLOTH_THETA_MIN,
+                             CLOTH_THETA_MAX);
+            },
+            GLFW_KEY_D);
+
+    Keybind z(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_THETA_Z]
+                = glm::clamp(mClothState[CLOTH_THETA_Z] + CLOTH_THETA_STEP,
+                             CLOTH_THETA_MIN,
+                             CLOTH_THETA_MAX);
+            },
+            GLFW_KEY_Z);
+
+  Keybind c(mWindow,
+            [&](Keybind &)
+            {
+              if (mClothMoveInProgress) return;
+              else mClothMoveInProgress = true;
+              mClothLerpBegin = mTimer.time();
+              mClothState[CLOTH_THETA_Z]
+                = glm::clamp(mClothState[CLOTH_THETA_Z] - CLOTH_THETA_STEP,
+                             CLOTH_THETA_MIN,
+                             CLOTH_THETA_MAX);
+            },
+            GLFW_KEY_C);
+
   Keybind pageUp(mWindow,
                  [&](Keybind &)
                  {
@@ -154,12 +329,12 @@ dmp::Program::Program(int width, int height,
                                     maxZoom);
                    },
                    GLFW_KEY_PAGE_DOWN);
-  Keybind w(mWindow,
+  Keybind f(mWindow,
             [&](Keybind &)
             {
               mRenderOptions.drawWireframe = !(mRenderOptions.drawWireframe);
             },
-            GLFW_KEY_W);
+            GLFW_KEY_F);
   Keybind n(mWindow,
             [&](Keybind &)
             {
@@ -191,8 +366,21 @@ dmp::Program::Program(int width, int height,
             },
             GLFW_KEY_L);
 
+  Keybind x(mWindow,
+                 [&](Keybind &)
+                 {
+                   auto & cam = mScene.cameras[0];
+                   auto windDir =
+                     -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+                   std::cerr << "set wind = "
+                             << glm::to_string(windDir) << std::endl;
+                   mScene.cloth->setWind(windDir);
+                 },
+                 GLFW_KEY_X);
+
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
-               w, n, l, comma, period};
+               f, n, l, comma, period, w, a, s, d, q, e, z, c,
+               x};
 
   mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
                                          int key,

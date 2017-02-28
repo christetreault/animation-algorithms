@@ -27,8 +27,11 @@ namespace dmp
     std::unique_ptr<Branch> graph;
     std::unique_ptr<Skybox> skybox;
 
+    Cloth * cloth;
+
     void build(std::function<bool(glm::mat4 &, float)> cameraFn,
                std::function<bool(glm::mat4 &, float)> lightFn,
+               std::function<bool(glm::mat4 &, float)> clothFn,
                const CommandLine & cmd);
     void update(float deltaT);
     void free();

@@ -125,6 +125,9 @@ namespace dmp
     Timer mTimer;
     Scene mScene;
     std::map<std::string, float> mCameraState;
+    std::map<std::string, float> mClothState;
+    bool mClothMoveInProgress = false;
+    float mClothLerpBegin = 0.0f;
     int mLightCoeff = 0.0f;
     std::unordered_set<Keybind> mKeybinds;
     std::unique_ptr<DOFWindow> mDOFWindow;

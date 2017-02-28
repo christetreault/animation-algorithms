@@ -41,8 +41,14 @@ void dmp::Particle::integrateAdamsBashforth(float deltaT)
 void dmp::Particle::integrate(float deltaT)
 {
   if (fixed) return;
-
+  static float highestSpeed = 0.0f;
   auto speed = fabsf(glm::length(velocity));
+
+  if (speed > highestSpeed)
+    {
+      std::cerr << "new speed record: " << speed << std::endl;
+      highestSpeed = speed;
+    }
 
   bool enteredLoop = false;
   size_t iterations = 0;
@@ -122,7 +128,7 @@ static float springConstantOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 2000.0f / (float) (step * step * step);
+    default: return 3800.0f / (float) (step * step * step);
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -133,7 +139,7 @@ static float dampingFactorOf(dmp::ClothPrefab p, size_t step)
   using namespace dmp;
   switch(p)
     {
-    default: return 10.0f / ((float) (step * step * step));
+    default: return 6.5f / ((float) (step * step * step));
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -156,6 +162,17 @@ static float dragCoeffOf(dmp::ClothPrefab p)
   switch(p)
     {
     default: return 1.0f;
+    }
+  impossible("non-exhaustive switch");
+  return 0.0f;
+}
+
+static float airDensityOf(dmp::ClothPrefab p)
+  {
+  using namespace dmp;
+  switch(p)
+    {
+    default: return 1000.0f;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -286,6 +303,7 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
 
   auto spacing = spacingOf(type);
   auto mass = massOf(type);
+  float fWidth = (float) mWidth;
   for (size_t i = 0; i < width; ++i)
     {
       for (size_t j = 0; j < height; ++j)
@@ -293,10 +311,10 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
           if (type == ClothPrefab::banner)
             {
               Particle p;
-              p.pos = {((float) i * spacing.x) / (float) mWidth,
+              p.pos = {(((float) i * spacing.x) / fWidth) - 0.5f,
                        -(((float) j * spacing.y) / (float) mHeight),
                        0.0f};
-
+              p.posInitial = p.pos;
               p.mass = mass;
 
               if (j == 0 && i == 0 && type == ClothPrefab::banner)
@@ -397,11 +415,11 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
                  frontFacingTopRightBottomLeft.begin(),
                  frontFacingTopRightBottomLeft.end());
 
-
   for (size_t i = 0; i < triIdxs.size(); i = i + 3)
     {
       Triangle tri = {};
       tri.dragCoeff = dragCoeffOf(type);
+      tri.airDensity = airDensityOf(type);
       tri.p1 = &(mParticles[triIdxs[i]]);
       tri.p2 = &(mParticles[triIdxs[i+1]]);
       tri.p3 = &(mParticles[triIdxs[i+2]]);
@@ -423,6 +441,8 @@ void dmp::Cloth::regenerateTriangleData()
       curr.p1->participatingNormals.push_back(curr.normal);
       curr.p2->participatingNormals.push_back(curr.normal);
       curr.p3->participatingNormals.push_back(curr.normal);
+
+      expect("area not zero", curr.area != 0.0f);
     }
 }
 
@@ -471,7 +491,7 @@ void dmp::Cloth::buildObjectImpl(size_t matIdx,
 
   std::vector<GLuint> idxs(0);
 
-  for (size_t i = 0; i < mIdxs.size() / 2; ++i)
+  for (size_t i = 0; i < mIdxs.size() / 4; ++i)
     {
       idxs.push_back((GLuint) mIdxs[i]);
     }
@@ -491,10 +511,14 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
       if (curr.fixed)
         {
           curr.posPrev = curr.pos;
-          curr.posNext = glm::vec3(M * glm::vec4(curr.pos, 0.0f));
+          curr.posNext = glm::vec3(M * glm::vec4(curr.posInitial, 1.0f));
           fixedParticles.push_back(&curr);
         }
     }
+
+  regenerateTriangleData();
+  collapseNormals();
+
   bool enteredLoop = false;
   float step = glm::min(maxDeltaT / deltaT, 1.0f);
   auto scaledDeltaT = glm::mix(0.0f, deltaT, step);
@@ -520,7 +544,10 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
           curr.accumulateForces();
         }
 
-      // TODO: triangles and wind resistance
+      for (auto & curr : mTriangles)
+        {
+          curr.accumulateDragForces(mWindDir);
+        }
 
       // step the integration forward
       for (auto & curr : mParticles)
@@ -529,9 +556,6 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
         }
     }
   expect("integrated at least once", enteredLoop);
-
-  regenerateTriangleData();
-  collapseNormals();
 
   // Now that the particles have moved, we need to update the Object
 
@@ -545,4 +569,51 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
         }
     };
   mObject->updateVertices(updateFn);
+}
+
+void dmp::Triangle::accumulateDragForces(glm::vec3 velocityAir)
+{
+  auto v = velocity - velocityAir;
+  if (glm::length(v) == 0.0f) return;
+  auto vHat = glm::normalize(v);
+  auto a = area * glm::dot(vHat, normal);
+
+  auto f = -0.5f
+    * airDensity
+    * glm::pow(glm::length(v), 2.0f)
+    * dragCoeff
+    * a
+    * normal;
+
+  // if (!(velocityAir.x == 0.0f && velocityAir.y == 0.0f && velocityAir.z == 0.0f))
+  //   {
+  //     std::cerr << "air density = " << airDensity << std::endl;
+  //     std::cerr << "|v|^2 = " << glm::pow(glm::length(v), 2.0f) << std::endl;
+  //     std::cerr << "drag coeff = " << dragCoeff << std::endl;
+  //     std::cerr << "area = " << a << std::endl;
+  //     std::cerr << "normal = " << glm::to_string(normal) << std::endl;
+  //     std::cerr << "force / 3 = " << glm::to_string(f / 3.0f) << std::endl;
+  //     expect("force not zero if there is wind",
+  //            (f.x != 0.0f || f.y != 0.0f || f.z != 0.0f));
+  //   }
+  auto fParticle = f / 3.0f;
+
+  expect("p1 not null", p1);
+  p1->accumulateForce(fParticle);
+  expect("p2 not null", p2);
+  p2->accumulateForce(fParticle);
+  expect("p3 not null", p3);
+  p3->accumulateForce(fParticle);
+}
+
+void dmp::Cloth::setWind(glm::vec3 windDir)
+{
+  if (roughEq(windDir.x, mWindDir.x)
+      && roughEq(windDir.y, mWindDir.y)
+      && roughEq(windDir.z, mWindDir.z))
+    {
+      std::cerr << "clear wind" << std::endl;
+      mWindDir = {0.0f, 0.0f, 0.0f};
+    }
+  else mWindDir = windDir;
 }

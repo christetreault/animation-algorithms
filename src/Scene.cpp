@@ -8,11 +8,12 @@
 
 void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
                        std::function<bool(glm::mat4 &, float)> lightFn,
+                       std::function<bool(glm::mat4 &, float)> clothFn,
                        const CommandLine & c)
 {
   graph = std::make_unique<Branch>();
-  Cloth cloth(32, 32, ClothPrefab::banner);
-  cloth.buildObject(objects, 1, 0);
+  Cloth cl(32, 32, ClothPrefab::banner);
+  cl.buildObject(objects, 1, 0);
 
   std::string notex = "";
   textures.emplace_back(notex);
@@ -77,7 +78,11 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
 
    auto lightRot = graph->transform(lightFn);
    auto lightGroup = lightRot->branch();
-   lightGroup->insert(std::move(cloth));
+
+   auto clothXform = lightGroup->transform(clothFn);
+   cloth = clothXform->insert(std::move(cl));
+
+
    auto redLightRotation = glm::rotate(glm::mat4(),
                                        glm::pi<float>() / 2.0f,
                                        glm::vec3(0.0f, 1.0f, 0.0f));

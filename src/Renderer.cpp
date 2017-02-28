@@ -59,8 +59,8 @@ void dmp::Renderer::initRenderer()
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
+  //glEnable(GL_CULL_FACE);
+  //glCullFace(GL_BACK);
 
   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
   glEnable(GL_PROGRAM_POINT_SIZE);

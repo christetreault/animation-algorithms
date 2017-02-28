@@ -2,11 +2,14 @@
 
 #include <set>
 #include <utility>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "../util.hpp"
 
 static const float maxDeltaT = 1.0f / 240.0f;
 static const float speedLimit = 10.0f;
+static const float groundPlane = 0.0f;
+static const float yOffset = 2.25;
 
 void dmp::Particle::accumulateForce(glm::vec3 inForce)
 {
@@ -59,6 +62,7 @@ void dmp::Particle::integrate(float deltaT)
       enteredLoop = true;
       ++iterations;
       integrateAdamsBashforth(glm::mix(0.0f, deltaT, step));
+
       // if (step < 0.01f)
       //   {
       //     std::cerr << "deltaT = " << deltaT << std::endl;
@@ -123,6 +127,28 @@ static float massOf(dmp::ClothPrefab p)
   return 0.0f;
 }
 
+static float elasticityOf(dmp::ClothPrefab p)
+{
+  using namespace dmp;
+  switch(p)
+    {
+    default: return 0.1f;
+    }
+  impossible("non-exhaustive switch");
+  return 0.0f;
+}
+
+static float frictionOf(dmp::ClothPrefab p)
+{
+  using namespace dmp;
+  switch(p)
+    {
+    default: return 0.5f;
+    }
+  impossible("non-exhaustive switch");
+  return 0.0f;
+}
+
 static float springConstantOf(dmp::ClothPrefab p, size_t step)
 {
   using namespace dmp;
@@ -161,7 +187,7 @@ static float dragCoeffOf(dmp::ClothPrefab p)
   using namespace dmp;
   switch(p)
     {
-    default: return 1.0f;
+    default: return 4000.0f;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -172,7 +198,7 @@ static float airDensityOf(dmp::ClothPrefab p)
   using namespace dmp;
   switch(p)
     {
-    default: return 1000.0f;
+    default: return 1.0f;
     }
   impossible("non-exhaustive switch");
   return 0.0f;
@@ -303,6 +329,8 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
 
   auto spacing = spacingOf(type);
   auto mass = massOf(type);
+  auto elasticity = elasticityOf(type);
+  auto friction = frictionOf(type);
   float fWidth = (float) mWidth;
   for (size_t i = 0; i < width; ++i)
     {
@@ -312,10 +340,12 @@ dmp::Cloth::Cloth(size_t width, size_t height, ClothPrefab type)
             {
               Particle p;
               p.pos = {(((float) i * spacing.x) / fWidth) - 0.5f,
-                       -(((float) j * spacing.y) / (float) mHeight),
+                       -(((float) j * spacing.y) / (float) mHeight) + yOffset,
                        0.0f};
               p.posInitial = p.pos;
               p.mass = mass;
+              p.elasticity = elasticity;
+              p.friction = friction;
 
               if (j == 0 && i == 0 && type == ClothPrefab::banner)
                 {
@@ -498,12 +528,21 @@ void dmp::Cloth::buildObjectImpl(size_t matIdx,
 
   mObject = std::make_unique<Object>(verts, idxs, GL_TRIANGLES,
                                      matIdx, texIdx, GL_DYNAMIC_DRAW);
+
+  auto offset = glm::translate(glm::mat4(),
+                               glm::vec3(0.0f, -yOffset / 2.0f, 0.0f));
+
+  mObject->setM(offset);
 }
 
 void dmp::Cloth::update(glm::mat4 M, float deltaT)
 {
   // First attempt to move all fixed particles per the scene graph
   // Find posNext as the goal position
+
+  mTime += deltaT;
+  auto windCoeff = 0.6f + 0.5f * (glm::sin(mod(mTime / 8.0f,
+                                               glm::pi<float>() * 2.0f)));
 
   std::list<Particle *> fixedParticles = {};
   for (auto & curr : mParticles)
@@ -546,7 +585,7 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
 
       for (auto & curr : mTriangles)
         {
-          curr.accumulateDragForces(mWindDir);
+          curr.accumulateDragForces(mWindConstant * windCoeff * mWindDir);
         }
 
       // step the integration forward
@@ -556,6 +595,18 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
         }
     }
   expect("integrated at least once", enteredLoop);
+
+  for (auto & curr : mParticles)
+    {
+      if (curr.pos.y < groundPlane)
+        {
+          curr.pos.y = groundPlane - curr.pos.y;
+          curr.velocity = {(1.0f - curr.friction) * curr.velocity.x,
+                           -curr.elasticity * curr.velocity.y,
+                           (1.0f - curr.friction) * curr.velocity.z};
+          curr.forcePrev = {0.0f, 0.0f, 0.0f};
+        }
+    }
 
   // Now that the particles have moved, we need to update the Object
 
@@ -606,14 +657,17 @@ void dmp::Triangle::accumulateDragForces(glm::vec3 velocityAir)
   p3->accumulateForce(fParticle);
 }
 
-void dmp::Cloth::setWind(glm::vec3 windDir)
+void dmp::Cloth::setWind(glm::vec3 windDir, float windConstant)
 {
   if (roughEq(windDir.x, mWindDir.x)
       && roughEq(windDir.y, mWindDir.y)
-      && roughEq(windDir.z, mWindDir.z))
+      && roughEq(windDir.z, mWindDir.z)
+      && roughEq(windConstant, mWindConstant))
     {
       std::cerr << "clear wind" << std::endl;
       mWindDir = {0.0f, 0.0f, 0.0f};
     }
   else mWindDir = windDir;
+
+  mWindConstant = windConstant;
 }

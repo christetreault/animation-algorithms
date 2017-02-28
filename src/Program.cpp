@@ -17,7 +17,8 @@ static const std::string CLOTH_X = "clothX";
 static const std::string CLOTH_Y = "clothY";
 static const std::string CLOTH_THETA_Y = "clothThetaY";
 static const std::string CLOTH_THETA_Z = "clothThetaZ";
-static const float CLOTH_MAX = 1.0f;
+static const std::string CLOTH_WIND_CONST = "clothWindConstant";
+static const float CLOTH_MAX = 2.0f;
 static const float CLOTH_MIN = -1.0f;
 static const float CLOTH_STEP = 0.1f;
 static const float CLOTH_THETA_MAX = glm::pi<float>();
@@ -366,21 +367,72 @@ dmp::Program::Program(int width, int height,
             },
             GLFW_KEY_L);
 
-  Keybind x(mWindow,
-                 [&](Keybind &)
-                 {
-                   auto & cam = mScene.cameras[0];
-                   auto windDir =
-                     -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-                   std::cerr << "set wind = "
-                             << glm::to_string(windDir) << std::endl;
-                   mScene.cloth->setWind(windDir);
-                 },
-                 GLFW_KEY_X);
+    Keybind x(mWindow,
+              [&](Keybind &)
+              {
+                auto & cam = mScene.cameras[0];
+                auto windDir =
+                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+                std::cerr << "set wind = "
+                << glm::to_string(windDir) << std::endl;
+                mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
+              },
+              GLFW_KEY_X);
+
+  mClothState[CLOTH_WIND_CONST] = 1.0f;
+
+  Keybind one(mWindow,
+            [&](Keybind & k)
+            {
+              mClothState[CLOTH_WIND_CONST] = 1.0f;
+              auto & cam = mScene.cameras[0];
+              auto windDir =
+                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+              std::cerr << "set wind = "
+                        << glm::to_string(windDir) << 1.0f <<std::endl;
+              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
+            },
+            GLFW_KEY_1);
+  Keybind two(mWindow,
+            [&](Keybind & k)
+            {
+              mClothState[CLOTH_WIND_CONST] = 2.0f;
+              auto & cam = mScene.cameras[0];
+              auto windDir =
+                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+              std::cerr << "set wind = "
+                        << glm::to_string(windDir) << 2.0f << std::endl;
+              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
+            },
+            GLFW_KEY_2);
+  Keybind three(mWindow,
+            [&](Keybind & k)
+            {
+              mClothState[CLOTH_WIND_CONST] = 3.0f;
+              auto & cam = mScene.cameras[0];
+              auto windDir =
+                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+              std::cerr << "set wind = "
+                        << glm::to_string(windDir)  << 3.0f << std::endl;
+              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
+            },
+            GLFW_KEY_3);
+  Keybind four(mWindow,
+            [&](Keybind & k)
+            {
+              mClothState[CLOTH_WIND_CONST] = 4.0f;
+              auto & cam = mScene.cameras[0];
+              auto windDir =
+                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+              std::cerr << "set wind = "
+                        << glm::to_string(windDir) << 4.0f << std::endl;
+              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
+            },
+            GLFW_KEY_4);
 
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
                f, n, l, comma, period, w, a, s, d, q, e, z, c,
-               x};
+               x, one, two, three, four};
 
   mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
                                          int key,

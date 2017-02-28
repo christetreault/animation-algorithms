@@ -26,7 +26,8 @@ namespace dmp
     glm::vec3 normal = {0.0f, 0.0f, 0.0f};
 
     float mass = 0.0f;
-    float momentum = 0.0f;
+    float elasticity = 0.0f;
+    float friction = 0.0f;
 
     void clearForce() {force = {};}
     void accumulateForce(glm::vec3 inForce);
@@ -85,7 +86,7 @@ namespace dmp
     Particle & getParticle(size_t i, size_t j);
 
     void update(glm::mat4 M, float deltaT);
-    void setWind(glm::vec3 windDir);
+    void setWind(glm::vec3 windDir, float windConst);
   private:
     void regenerateTriangleData();
     void collapseNormals();
@@ -119,6 +120,8 @@ namespace dmp
     size_t mHeight;
     size_t mWidth;
     glm::vec3 mWindDir;
+    float mWindConstant = 1.0f;
+    float mTime = 0.0f;
   };
 
 

@@ -79,7 +79,7 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
    auto lightRot = graph->transform(lightFn);
    auto lightGroup = lightRot->branch();
 
-   auto clothXform = lightGroup->transform(clothFn);
+   auto clothXform = graph->transform(clothFn);
    cloth = clothXform->insert(std::move(cl));
 
 

@@ -429,10 +429,22 @@ dmp::Program::Program(int width, int height,
               mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
             },
             GLFW_KEY_4);
+  Keybind zero(mWindow,
+            [&](Keybind & k)
+            {
+              mClothState[CLOTH_WIND_CONST] = 2.0f;
+              auto & cam = mScene.cameras[0];
+              auto windDir =
+                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
+              std::cerr << "set wind = "
+                        << glm::to_string(windDir) << 2.0f << std::endl;
+              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST], false);
+            },
+            GLFW_KEY_0);
 
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
                f, n, l, comma, period, w, a, s, d, q, e, z, c,
-               x, one, two, three, four};
+               x, one, two, three, four, zero};
 
   mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
                                          int key,

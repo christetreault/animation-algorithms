@@ -86,7 +86,7 @@ namespace dmp
     Particle & getParticle(size_t i, size_t j);
 
     void update(glm::mat4 M, float deltaT);
-    void setWind(glm::vec3 windDir, float windConst);
+    void setWind(glm::vec3 windDir, float windConst, bool fancyWind = true);
   private:
     void regenerateTriangleData();
     void collapseNormals();
@@ -121,6 +121,7 @@ namespace dmp
     size_t mWidth;
     glm::vec3 mWindDir;
     float mWindConstant = 1.0f;
+    bool mFancyWind = true;
     float mTime = 0.0f;
   };
 

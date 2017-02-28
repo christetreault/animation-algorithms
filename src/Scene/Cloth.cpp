@@ -541,8 +541,12 @@ void dmp::Cloth::update(glm::mat4 M, float deltaT)
   // Find posNext as the goal position
 
   mTime += deltaT;
-  auto windCoeff = 0.6f + 0.5f * (glm::sin(mod(mTime / 8.0f,
-                                               glm::pi<float>() * 2.0f)));
+  auto windCoeff = 1.0f;
+  if (mFancyWind)
+    {
+      windCoeff = 1.0f + 0.5f * (glm::sin(mod(mTime / 8.0f,
+                                              glm::pi<float>() * 2.0f)));
+    }
 
   std::list<Particle *> fixedParticles = {};
   for (auto & curr : mParticles)
@@ -657,7 +661,7 @@ void dmp::Triangle::accumulateDragForces(glm::vec3 velocityAir)
   p3->accumulateForce(fParticle);
 }
 
-void dmp::Cloth::setWind(glm::vec3 windDir, float windConstant)
+void dmp::Cloth::setWind(glm::vec3 windDir, float windConstant, bool fancyWind)
 {
   if (roughEq(windDir.x, mWindDir.x)
       && roughEq(windDir.y, mWindDir.y)
@@ -670,4 +674,5 @@ void dmp::Cloth::setWind(glm::vec3 windDir, float windConstant)
   else mWindDir = windDir;
 
   mWindConstant = windConstant;
+  mFancyWind = fancyWind;
 }

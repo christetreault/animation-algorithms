@@ -125,12 +125,25 @@ namespace dmp
     Timer mTimer;
     Scene mScene;
     std::map<std::string, float> mCameraState;
-    std::map<std::string, float> mClothState;
-    bool mClothMoveInProgress = false;
-    float mClothLerpBegin = 0.0f;
     int mLightCoeff = 0.0f;
     std::unordered_set<Keybind> mKeybinds;
     std::unique_ptr<DOFWindow> mDOFWindow;
+
+    Quaternion q0;
+    Quaternion q1;
+    Quaternion q2;
+    Quaternion q3;
+    Quaternion q4;
+
+    bool mUseCatmullRom = false;
+    bool mForceShortPath = true;
+    TransformFn mStaticQuatFn;
+    TransformFn mQuatFn;
+
+    size_t mSelectedQuat = 0;
+    bool mIncrementQuatPos = true;
+
+    bool mShowDynBox = true;
   };
 }
 

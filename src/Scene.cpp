@@ -6,14 +6,13 @@
 #include <glm/gtc/constants.hpp>
 #include "config.hpp"
 
-void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
-                       std::function<bool(glm::mat4 &, float)> lightFn,
-                       std::function<bool(glm::mat4 &, float)> clothFn,
+void dmp::Scene::build(TransformFn cameraFn,
+                       TransformFn lightFn,
+                       TransformFn quatFn,
+                       TransformFn staticQuatFn,
                        const CommandLine & c)
 {
   graph = std::make_unique<Branch>();
-  Cloth cl(32, 32, ClothPrefab::banner);
-  cl.buildObject(objects, 1, 0);
 
   std::string notex = "";
   textures.emplace_back(notex);
@@ -79,10 +78,6 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
    auto lightRot = graph->transform(lightFn);
    auto lightGroup = lightRot->branch();
 
-   auto clothXform = graph->transform(clothFn);
-   cloth = clothXform->insert(std::move(cl));
-
-
    auto redLightRotation = glm::rotate(glm::mat4(),
                                        glm::pi<float>() / 2.0f,
                                        glm::vec3(0.0f, 1.0f, 0.0f));
@@ -104,6 +99,59 @@ void dmp::Scene::build(std::function<bool(glm::mat4 &, float)> cameraFn,
    cameras.emplace_back();
    graph->insert(cameras[0].focus());
    cam->insert(cameras[0].pos());
+
+   glm::vec4 max(0.2f, 0.5f, 0.1f, 1.0f);
+   glm::vec4 min = -max;
+
+   Object build1(Cube, min, max, 1, 0);
+   auto staticBoxOne = [=](glm::mat4 & M, Quaternion & q, float)
+     {
+       return staticQuatFn(M, q, 0.0f);
+     };
+
+   auto boxOne = graph->transform(staticBoxOne);
+   objects.push_back(boxOne->insert(build1));
+
+   Object build2(Cube, min, max, 1, 0);
+   auto staticBoxTwo = [=](glm::mat4 & M, Quaternion & q, float)
+     {
+       return staticQuatFn(M, q, 0.25f);
+     };
+
+   auto boxTwo = graph->transform(staticBoxTwo);
+   objects.push_back(boxTwo->insert(build2));
+
+   Object build3(Cube, min, max, 1, 0);
+   auto staticBoxThree = [=](glm::mat4 & M, Quaternion & q, float)
+     {
+       return staticQuatFn(M, q, 0.5f);
+     };
+
+   auto boxThree = graph->transform(staticBoxThree);
+   objects.push_back(boxThree->insert(build3));
+
+   Object build4(Cube, min, max, 1, 0);
+   auto staticBoxFour = [=](glm::mat4 & M, Quaternion & q, float)
+     {
+       return staticQuatFn(M, q, 0.75f);
+     };
+
+   auto boxFour = graph->transform(staticBoxFour);
+   objects.push_back(boxFour->insert(build4));
+
+   Object build5(Cube, min, max, 1, 0);
+   auto staticBoxFive = [=](glm::mat4 & M, Quaternion & q, float)
+     {
+       return staticQuatFn(M, q, 1.0f);
+     };
+
+   auto boxFive = graph->transform(staticBoxFive);
+   objects.push_back(boxFive->insert(build5));
+
+   Object buildLerp(Cube, min, max, 0, 0);
+   auto lerpBox = graph->transform(quatFn);
+   dynamicBox = lerpBox->insert(buildLerp);
+   objects.push_back(dynamicBox);
 
    objectConstants
      = std::make_unique<UniformBuffer>(objects.size(),

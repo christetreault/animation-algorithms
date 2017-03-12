@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "config.hpp"
 #include "util.hpp"
+#include "Quaternion.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
@@ -12,19 +13,6 @@
 static const std::string HORIZONTAL = "horizontal";
 static const std::string VERTICAL = "vertical";
 static const std::string DISTANCE = "distance";
-
-static const std::string CLOTH_X = "clothX";
-static const std::string CLOTH_Y = "clothY";
-static const std::string CLOTH_THETA_Y = "clothThetaY";
-static const std::string CLOTH_THETA_Z = "clothThetaZ";
-static const std::string CLOTH_WIND_CONST = "clothWindConstant";
-static const float CLOTH_MAX = 2.0f;
-static const float CLOTH_MIN = -1.0f;
-static const float CLOTH_STEP = 0.1f;
-static const float CLOTH_THETA_MAX = glm::pi<float>();
-static const float CLOTH_THETA_MIN = -glm::pi<float>();
-static const float CLOTH_THETA_STEP = glm::pi<float>() * 0.05f;
-static const float CLOTH_LERP_LENGTH = 0.05f;
 
 static void errorCb(int error, const char * description)
 {
@@ -65,7 +53,7 @@ dmp::Program::Program(int width, int height,
   mCameraState[VERTICAL] = 0.0f;
   mCameraState[DISTANCE] = 5.0f;
 
-  auto cameraFn = [&mCameraState=mCameraState] (glm::mat4 & M, float)
+  auto cameraFn = [&mCameraState=mCameraState] (glm::mat4 & M, Quaternion &, float)
     {
       static float prevHorz = std::numeric_limits<float>::infinity();
       static float prevVert = std::numeric_limits<float>::infinity();
@@ -97,68 +85,9 @@ dmp::Program::Program(int width, int height,
       return true;
     };
 
-  auto clothFn = [&] (glm::mat4 & M, float)
-    {
-      static float prevX = 0.0f;
-      static float prevY = 0.0f;
-      static float prevThetaY = 0.0f;
-      static float prevThetaZ = 0.0f;
-      auto x = mClothState[CLOTH_X];
-      auto y = mClothState[CLOTH_Y];
-      auto thetaY = mClothState[CLOTH_THETA_Y];
-      auto thetaZ = mClothState[CLOTH_THETA_Z];
 
-      if (roughEq(prevX, x)
-          && roughEq(prevY, y)
-          && roughEq(prevThetaY, thetaY)
-          && roughEq(prevThetaZ, thetaZ))
-        {
-          // if prev == curr, then we are not moving. Make sure
-          // rot/trans in progress are false and return
-          mClothMoveInProgress = false;
-          return false;
-        }
 
-      auto endTime = (mClothLerpBegin + CLOTH_LERP_LENGTH);
-      auto currTime = mTimer.time();
-      if (currTime > endTime)
-        {
-          // if currTime > endTime, then the lerp should be done.
-          // clear rot and trans in progress flags so we begin
-          // catching keypresses again
-          mClothMoveInProgress = false;
-          prevX = x;
-          prevY = y;
-          prevThetaY = thetaY;
-          prevThetaZ = thetaZ;
-          //std::cerr << "lerp ended" << std::endl;
-          return false;
-        }
-
-      auto t = endTime / currTime;
-
-      x = glm::mix(prevX, x, t);
-      y = glm::mix(prevY, y, t);
-      thetaY = glm::mix(prevThetaY, thetaY, t);
-      thetaZ = glm::mix(prevThetaZ, thetaZ, t);
-
-      auto trans = glm::translate(glm::mat4(), glm::vec3(x, y, 0.0f));
-      auto rotY = glm::rotate(glm::mat4(),
-                              thetaY,
-                              glm::vec3(0.0f, 1.0f, 0.0f));
-      auto rotZ = glm::rotate(glm::mat4(),
-                              thetaZ,
-                              glm::vec3(0.0f, 0.0f, 1.0f));
-
-      M = trans * rotY * rotZ;
-
-      //std::cerr << "<clothX, clothY, clothTheta> = <"
-      //<< x << ", " << y << ", " << theta << ">" << std::endl;
-
-      return true;
-    };
-
-  auto lightFn = [&l=mLightCoeff](glm::mat4 & M, float deltaT)
+  auto lightFn = [&l=mLightCoeff](glm::mat4 & M, Quaternion &, float deltaT)
     {
       M = glm::rotate(M,
                       ((float) l) * (deltaT / 3.0f),
@@ -167,7 +96,75 @@ dmp::Program::Program(int width, int height,
       return true;
     };
 
-  mScene.build(cameraFn, lightFn, clothFn, file);
+  auto staticQuatFn = [&](glm::mat4 & M, Quaternion & q, float t)
+    {
+      auto twoPi = 2.0f * glm::pi<float>();
+      auto x = glm::mix(-4.0f, 4.0f, t);
+      auto y = 0.8f * glm::cos(glm::mix(-twoPi, twoPi, t));
+      auto z = 0.4f * glm::cos(glm::mix(-twoPi, twoPi, t));
+
+      M = glm::translate(glm::mat4(), {x, y, z});
+
+      if (mUseCatmullRom)
+        {
+          if (t < 0.25f) q = catmullRom(t * 4.0f, q4, q0, q1, q2, mForceShortPath);
+          else if (t < 0.5f) q = catmullRom((t - 0.25f) * 4.0f, q0, q1, q2, q3, mForceShortPath);
+          else if (t < 0.75f) q = catmullRom((t - 0.5f) * 4.0f, q1, q2, q3, q4, mForceShortPath);
+          else q = catmullRom((t - 0.75f) * 4.0f, q2, q3, q4, q0, mForceShortPath);
+        }
+      else
+        {
+          if (t < 0.25f) q = slerp(t * 4.0f, q0, q1, mForceShortPath);
+          else if (t < 0.5f) q = slerp((t - 0.25f) * 4.0f, q1, q2, mForceShortPath);
+          else if (t < 0.75f) q = slerp((t - 0.5f) * 4.0f, q2, q3, mForceShortPath);
+          else q = slerp((t - 0.75f) * 4.0f, q3, q4, mForceShortPath);
+        }
+
+      return true;
+    };
+
+  auto quatFn = [&mTimer=mTimer,
+                 &mTimeScale=mTimeScale,
+                 &mUseCatmullRom=mUseCatmullRom,
+                 &mForceShortPath=mForceShortPath,
+                 &q0=q0, &q1=q1, &q3=q3, &q4=q4,
+                 staticQuatFn](glm::mat4 & M, Quaternion & q, float deltaT)
+    {
+      auto t = mod(mTimeScale * mTimer.time() / 5.0f, 2.0f);
+      if (t > 1)
+        {
+          t = t - 1.0f;
+          float pi = glm::pi<float>();
+          float x;
+          float y = 0.8f;
+          float z = 0.4f - (4.0f * glm::sin(glm::mix(0.0f, pi, t)));
+
+          float xRight = 4.0f + glm::sin(glm::mix(0.0f, pi,
+                                                  glm::clamp(t, 0.0f, 0.5f) * 2.0f)) * 4.0f;
+          float xLeft = -4.0f + glm::sin(glm::mix(0.0f, pi,
+                                                  glm::clamp(t, 0.5f, 1.0f) * 2.0f)) * 4.0f;
+
+          x = glm::mix(xRight, xLeft, t);
+
+          M = glm::translate(glm::mat4(), {x, y, z});
+
+          if (mUseCatmullRom)
+            {
+              q = catmullRom(t, q3, q4, q0, q1, mForceShortPath);
+            }
+          else
+            {
+              q = slerp(t, q4, q0, mForceShortPath);
+            }
+          return true;
+        }
+      else
+        {
+          return staticQuatFn(M, q, t);
+        }
+    };
+
+  mScene.build(cameraFn, lightFn, quatFn, staticQuatFn, file);
 
   Keybind esc((GLFWwindow *) mWindow,
               [&](Keybind & k)
@@ -211,106 +208,6 @@ dmp::Program::Program(int width, int height,
                                 maxHorz);
                },
                GLFW_KEY_LEFT);
-  Keybind w(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_Y]
-                = glm::clamp(mClothState[CLOTH_Y] + CLOTH_STEP,
-                             CLOTH_MIN,
-                             CLOTH_MAX);
-            },
-            GLFW_KEY_W);
-  Keybind q(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_X]
-                = glm::clamp(mClothState[CLOTH_X] - CLOTH_STEP,
-                             CLOTH_MIN,
-                             CLOTH_MAX);
-            },
-            GLFW_KEY_Q);
-  Keybind s(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_Y]
-                = glm::clamp(mClothState[CLOTH_Y] - CLOTH_STEP,
-                             CLOTH_MIN,
-                             CLOTH_MAX);
-            },
-            GLFW_KEY_S);
-  Keybind e(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_X]
-                = glm::clamp(mClothState[CLOTH_X] + CLOTH_STEP,
-                             CLOTH_MIN,
-                             CLOTH_MAX);
-            },
-            GLFW_KEY_E);
-
-  Keybind a(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_THETA_Y]
-                = glm::clamp(mClothState[CLOTH_THETA_Y] + CLOTH_THETA_STEP,
-                             CLOTH_THETA_MIN,
-                             CLOTH_THETA_MAX);
-            },
-            GLFW_KEY_A);
-
-  Keybind d(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_THETA_Y]
-                = glm::clamp(mClothState[CLOTH_THETA_Y] - CLOTH_THETA_STEP,
-                             CLOTH_THETA_MIN,
-                             CLOTH_THETA_MAX);
-            },
-            GLFW_KEY_D);
-
-    Keybind z(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_THETA_Z]
-                = glm::clamp(mClothState[CLOTH_THETA_Z] + CLOTH_THETA_STEP,
-                             CLOTH_THETA_MIN,
-                             CLOTH_THETA_MAX);
-            },
-            GLFW_KEY_Z);
-
-  Keybind c(mWindow,
-            [&](Keybind &)
-            {
-              if (mClothMoveInProgress) return;
-              else mClothMoveInProgress = true;
-              mClothLerpBegin = mTimer.time();
-              mClothState[CLOTH_THETA_Z]
-                = glm::clamp(mClothState[CLOTH_THETA_Z] - CLOTH_THETA_STEP,
-                             CLOTH_THETA_MIN,
-                             CLOTH_THETA_MAX);
-            },
-            GLFW_KEY_C);
 
   Keybind pageUp(mWindow,
                  [&](Keybind &)
@@ -330,12 +227,12 @@ dmp::Program::Program(int width, int height,
                                     maxZoom);
                    },
                    GLFW_KEY_PAGE_DOWN);
-  Keybind f(mWindow,
+  Keybind w(mWindow,
             [&](Keybind &)
             {
               mRenderOptions.drawWireframe = !(mRenderOptions.drawWireframe);
             },
-            GLFW_KEY_F);
+            GLFW_KEY_W);
   Keybind n(mWindow,
             [&](Keybind &)
             {
@@ -367,84 +264,160 @@ dmp::Program::Program(int width, int height,
             },
             GLFW_KEY_L);
 
-    Keybind x(mWindow,
+  Keybind one(mWindow,
+               [&](Keybind &)
+               {
+                 mSelectedQuat = 0;
+               },
+               GLFW_KEY_1);
+
+  Keybind two(mWindow,
               [&](Keybind &)
               {
-                auto & cam = mScene.cameras[0];
-                auto windDir =
-                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-                std::cerr << "set wind = "
-                << glm::to_string(windDir) << std::endl;
-                mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
+                mSelectedQuat = 1;
               },
-              GLFW_KEY_X);
+              GLFW_KEY_2);
 
-  mClothState[CLOTH_WIND_CONST] = 1.0f;
-
-  Keybind one(mWindow,
-            [&](Keybind & k)
-            {
-              mClothState[CLOTH_WIND_CONST] = 1.0f;
-              auto & cam = mScene.cameras[0];
-              auto windDir =
-                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-              std::cerr << "set wind = "
-                        << glm::to_string(windDir) << 1.0f <<std::endl;
-              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
-            },
-            GLFW_KEY_1);
-  Keybind two(mWindow,
-            [&](Keybind & k)
-            {
-              mClothState[CLOTH_WIND_CONST] = 2.0f;
-              auto & cam = mScene.cameras[0];
-              auto windDir =
-                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-              std::cerr << "set wind = "
-                        << glm::to_string(windDir) << 2.0f << std::endl;
-              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
-            },
-            GLFW_KEY_2);
   Keybind three(mWindow,
-            [&](Keybind & k)
-            {
-              mClothState[CLOTH_WIND_CONST] = 3.0f;
-              auto & cam = mScene.cameras[0];
-              auto windDir =
-                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-              std::cerr << "set wind = "
-                        << glm::to_string(windDir)  << 3.0f << std::endl;
-              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
-            },
-            GLFW_KEY_3);
+              [&](Keybind &)
+              {
+                mSelectedQuat = 2;
+              },
+              GLFW_KEY_3);
+
   Keybind four(mWindow,
-            [&](Keybind & k)
-            {
-              mClothState[CLOTH_WIND_CONST] = 4.0f;
-              auto & cam = mScene.cameras[0];
-              auto windDir =
-                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-              std::cerr << "set wind = "
-                        << glm::to_string(windDir) << 4.0f << std::endl;
-              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST]);
-            },
-            GLFW_KEY_4);
-  Keybind zero(mWindow,
-            [&](Keybind & k)
-            {
-              mClothState[CLOTH_WIND_CONST] = 2.0f;
-              auto & cam = mScene.cameras[0];
-              auto windDir =
-                -glm::normalize(glm::vec3(cam.getE(glm::mat4())));
-              std::cerr << "set wind = "
-                        << glm::to_string(windDir) << 2.0f << std::endl;
-              mScene.cloth->setWind(windDir, mClothState[CLOTH_WIND_CONST], false);
-            },
-            GLFW_KEY_0);
+                [&](Keybind &)
+                {
+                  mSelectedQuat = 3;
+                },
+                GLFW_KEY_4);
+
+  Keybind five(mWindow,
+               [&](Keybind &)
+               {
+                 mSelectedQuat = 4;
+               },
+               GLFW_KEY_5);
+
+  Keybind i(mWindow,
+               [&](Keybind &)
+               {
+                 float delta = mIncrementQuatPos ? 0.1f : -0.1f;
+                 Quaternion q(delta, RotationAxis::X);
+                 switch (mSelectedQuat)
+                   {
+                   case 0:
+                     q0 = q0 * q;
+                     return;
+                   case 1:
+                     q1 = q1 * q;
+                     return;
+                   case 2:
+                     q2 = q2 * q;
+                     return;
+                   case 3:
+                     q3 = q3 * q;
+                     return;
+                   case 4:
+                     q4 = q4 * q;
+                     return;
+                   default:
+                     return;
+                   }
+               },
+               GLFW_KEY_I);
+
+  Keybind j(mWindow,
+               [&](Keybind &)
+               {
+                 float delta = mIncrementQuatPos ? 0.1f : -0.1f;
+                 Quaternion q(delta, RotationAxis::Y);
+                 switch (mSelectedQuat)
+                   {
+                   case 0:
+                     q0 = q0 * q;
+                     return;
+                   case 1:
+                     q1 = q1 * q;
+                     return;
+                   case 2:
+                     q2 = q2 * q;
+                     return;
+                   case 3:
+                     q3 = q3 * q;
+                     return;
+                   case 4:
+                     q4 = q4 * q;
+                     return;
+                   default:
+                     return;
+                   }
+               },
+               GLFW_KEY_J);
+
+  Keybind k(mWindow,
+               [&](Keybind &)
+               {
+                 float delta = mIncrementQuatPos ? 0.1f : -0.1f;
+                 Quaternion q(delta, RotationAxis::Z);
+                 switch (mSelectedQuat)
+                   {
+                   case 0:
+                     q0 = q0 * q;
+                     return;
+                   case 1:
+                     q1 = q1 * q;
+                     return;
+                   case 2:
+                     q2 = q2 * q;
+                     return;
+                   case 3:
+                     q3 = q3 * q;
+                     return;
+                   case 4:
+                     q4 = q4 * q;
+                     return;
+                   default:
+                     return;
+                   }
+               },
+               GLFW_KEY_K);
+
+  Keybind tab(mWindow,
+               [&](Keybind &)
+               {
+                 mIncrementQuatPos = !mIncrementQuatPos;
+               },
+               GLFW_KEY_TAB);
+
+  Keybind c(mWindow,
+               [&](Keybind &)
+               {
+                 mUseCatmullRom = !mUseCatmullRom;
+                 std::cerr << "catmull rom enabled? " << mUseCatmullRom << std::endl;
+               },
+               GLFW_KEY_C);
+
+  Keybind f(mWindow,
+               [&](Keybind &)
+               {
+                 mForceShortPath = !mForceShortPath;
+                 std::cerr << "force short path? " << mForceShortPath << std::endl;
+               },
+               GLFW_KEY_F);
+
+  Keybind s(mWindow,
+               [&](Keybind &)
+               {
+                 mShowDynBox = !mShowDynBox;
+                 if (mShowDynBox) mScene.dynamicBox->show();
+                 else mScene.dynamicBox->hide();
+               },
+               GLFW_KEY_S);
 
   mKeybinds = {esc, up, down, right, left, pageUp, pageDown,
-               f, n, l, comma, period, w, a, s, d, q, e, z, c,
-               x, one, two, three, four, zero};
+               w, n, l, comma, period, one, two, three, four, five,
+               i, j, k, tab, c, f, s};
 
   mWindow.keyFn = [&mKeybinds=mKeybinds](GLFWwindow * w,
                                          int key,

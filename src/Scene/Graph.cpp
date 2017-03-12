@@ -104,18 +104,54 @@ Transform * Transform::transform(glm::mat4 t)
   return insert(p);
 }
 
-Transform * Transform::transform(std::function<bool(glm::mat4 &, float)> f)
+Transform * Transform::transform(TransformFn f)
 {
   auto p = std::make_unique<Transform>();
   p->mUpdateFn = f;
   return insert(p);
 }
 
+Transform * Transform::transform(Quaternion q)
+{
+  auto p = std::make_unique<Transform>();
+  p->mQuatRotation = q;
+  return insert(p);
+}
+
 Transform * Transform::transform(glm::mat4 t,
-                                 std::function<bool(glm::mat4 &, float)> f)
+                                 TransformFn f)
 {
   auto p = std::make_unique<Transform>();
   p->mTransform = t;
+  p->mUpdateFn = f;
+  return insert(p);
+}
+
+Transform * Transform::transform(Quaternion q,
+                                 TransformFn f)
+{
+  auto p = std::make_unique<Transform>();
+  p->mUpdateFn = f;
+  p->mQuatRotation = q;
+  return insert(p);
+}
+
+Transform * Transform::transform(Quaternion q,
+                                 glm::mat4 t)
+{
+  auto p = std::make_unique<Transform>();
+  p->mTransform = t;
+  p->mQuatRotation = q;
+  return insert(p);
+}
+
+Transform * Transform::transform(Quaternion q,
+                                 glm::mat4 t,
+                                 TransformFn f)
+{
+  auto p = std::make_unique<Transform>();
+  p->mTransform = t;
+  p->mQuatRotation = q;
   p->mUpdateFn = f;
   return insert(p);
 }
@@ -136,6 +172,16 @@ Container * Transform::insert(std::unique_ptr<Container> & c)
 {
   mChild = std::move(c);
   return (Container *) mChild.get();
+}
+
+void dmp::Transform::updateImpl(float deltaT, glm::mat4 M, bool inDirty)
+{
+  // If outDirty == false, then it must be the case that mTransform is not
+  // changed.
+  expect("updateFn not null", mUpdateFn);
+  bool outDirty = mUpdateFn(mTransform, mQuatRotation, deltaT) || inDirty;
+  glm::mat4 outM = M * mTransform * ((glm::mat4) mQuatRotation);
+  if (mChild) mChild->update(deltaT, outM, outDirty);
 }
 
 // -----------------------------------------------------------------------------
@@ -162,7 +208,14 @@ Transform * Branch::transform(glm::mat4 t)
   return insert(p);
 }
 
-Transform * Branch::transform(std::function<bool(glm::mat4 &, float)> f)
+Transform * Branch::transform(Quaternion q)
+{
+  auto p = std::make_unique<Transform>();
+  p->mQuatRotation = q;
+  return insert(p);
+}
+
+Transform * Branch::transform(TransformFn f)
 {
   auto p = std::make_unique<Transform>();
   p->mUpdateFn = f;
@@ -170,9 +223,38 @@ Transform * Branch::transform(std::function<bool(glm::mat4 &, float)> f)
 }
 
 Transform * Branch::transform(glm::mat4 t,
-                              std::function<bool(glm::mat4 &, float)> f)
+                              TransformFn f)
 {
   auto p = std::make_unique<Transform>();
+  p->mTransform = t;
+  p->mUpdateFn = f;
+  return insert(p);
+}
+
+Transform * Branch::transform(Quaternion q,
+                              glm::mat4 t)
+{
+  auto p = std::make_unique<Transform>();
+  p->mQuatRotation = q;
+  p->mTransform = t;
+  return insert(p);
+}
+
+Transform * Branch::transform(Quaternion q,
+                              TransformFn f)
+{
+  auto p = std::make_unique<Transform>();
+  p->mQuatRotation = q;
+  p->mUpdateFn = f;
+  return insert(p);
+}
+
+Transform * Branch::transform(Quaternion q,
+                              glm::mat4 t,
+                              TransformFn f)
+{
+  auto p = std::make_unique<Transform>();
+  p->mQuatRotation = q;
   p->mTransform = t;
   p->mUpdateFn = f;
   return insert(p);

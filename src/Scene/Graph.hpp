@@ -9,6 +9,7 @@
 #include "Object.hpp"
 #include "Cloth.hpp"
 #include "Camera.hpp"
+#include "../Quaternion.hpp"
 
 
 namespace dmp
@@ -60,18 +61,21 @@ namespace dmp
 
   };
 
-  static auto noTransform = [] (glm::mat4 &, float)
+  static auto noTransform = [] (glm::mat4 &, Quaternion &, float)
   {
     return false;
   };
+
+  typedef std::function<bool(glm::mat4 &, Quaternion &, float)> TransformFn;
 
   class Transform : public Node
   {
   public:
     // CONTRACT: If the update function does not make a change, then it
     // MUST return false. If it makes a change, then it MUST return true.
-    std::function<bool(glm::mat4 &, float)> mUpdateFn = noTransform;
+    TransformFn mUpdateFn = noTransform;
     glm::mat4 mTransform;
+    Quaternion mQuatRotation;
     std::unique_ptr<Node> mChild = nullptr;
 
     Object * insert(Object o);
@@ -86,20 +90,15 @@ namespace dmp
 
     Transform * transform();
     Transform * transform(glm::mat4);
-    Transform * transform(std::function<bool(glm::mat4 &, float)>);
-    Transform * transform(glm::mat4, std::function<bool(glm::mat4 &, float)>);
+    Transform * transform(Quaternion);
+    Transform * transform(TransformFn);
+    Transform * transform(Quaternion, TransformFn);
+    Transform * transform(glm::mat4, TransformFn);
+    Transform * transform(Quaternion, glm::mat4);
+    Transform * transform(Quaternion, glm::mat4, TransformFn);
     Branch * branch();
   private:
-    void updateImpl(float deltaT, glm::mat4 M, bool inDirty) override
-    {
-      // If outDirty == false, then it must be the case that mTransform is not
-      // changed.
-      expect("updateFn not null", mUpdateFn);
-      bool outDirty = mUpdateFn(mTransform, deltaT) || inDirty;
-      glm::mat4 outM = M * mTransform;
-
-      if (mChild) mChild->update(deltaT, outM, outDirty);
-    }
+    void updateImpl(float deltaT, glm::mat4 M, bool inDirty) override;
   };
 
   class Branch : public Node
@@ -119,8 +118,12 @@ namespace dmp
 
     Transform * transform();
     Transform * transform(glm::mat4);
-    Transform * transform(std::function<bool(glm::mat4 &, float)>);
-    Transform * transform(glm::mat4, std::function<bool(glm::mat4 &, float)>);
+    Transform * transform(Quaternion);
+    Transform * transform(TransformFn);
+    Transform * transform(Quaternion, TransformFn);
+    Transform * transform(glm::mat4, TransformFn);
+    Transform * transform(Quaternion, glm::mat4);
+    Transform * transform(Quaternion, glm::mat4, TransformFn);
   private:
     void updateImpl(float deltaT, glm::mat4 M, bool dirty) override
     {

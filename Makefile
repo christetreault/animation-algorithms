@@ -2,7 +2,7 @@
 .PHONY := all build rebuild clean debug release
 OS_NAME := $(shell uname)
 
-PROG_NAME = cloth
+PROG_NAME = quaternion
 SRC_DIR = src
 RES_DIR = res
 SHADER_DIR = $(RES_DIR)/shaders
@@ -38,10 +38,11 @@ PREFIX_RENDERER_CPP_FILES = $(addprefix Renderer/,$(RENDERER_CPP_FILES))
 # ------------------------------------------------------------------------------
 
 SCENE_MODEL_CPP_FILES = Skeleton.cpp Skin.cpp Morph.cpp parsing.cpp \
-Animation.cpp Cloth.cpp
+Animation.cpp
 PREFIX_SCENE_MODEL_CPP_FILES = $(addprefix Model/,$(SCENE_MODEL_CPP_FILES))
 
-SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skybox.cpp Model.cpp
+SCENE_CPP_FILES = Camera.cpp Graph.cpp Object.cpp Skybox.cpp Model.cpp \
+Cloth.cpp
 PREFIX_SCENE_CPP_FILES = $(addprefix Scene/,$(SCENE_CPP_FILES) \
 $(PREFIX_SCENE_MODEL_CPP_FILES)
 
@@ -50,7 +51,7 @@ $(PREFIX_SCENE_MODEL_CPP_FILES)
 # ------------------------------------------------------------------------------
 
 CPP_FILES = CommandLine.cpp DOFWindow.cpp main.cpp Program.cpp Renderer.cpp \
-	    Scene.cpp Timer.cpp Window.cpp
+	    Scene.cpp Timer.cpp Window.cpp Quaternion.cpp
 PREFIX_CPP_FILES = $(addprefix src/$(CPP_FILES) $(PREFIX_SCENE_CPP_FILES) \
 $(PREFIX_RENDERER_CPP_FILES) $(PREFIX_EXTERNAL_CPP_FILES))
 

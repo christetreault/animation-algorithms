@@ -203,10 +203,19 @@ dmp::Quaternion dmp::catmullRom(float t,
                                 const dmp::Quaternion & q3,
                                 bool forceShortPath)
 {
-  auto q10 = slerp(t + 1.0f, q0, q1, forceShortPath);
-  auto q11 = slerp(t, q1, q2, forceShortPath);
-  auto q12 = slerp(t - 1.0f, q2, q3, forceShortPath);
-  auto q20 = slerp((t + 1.0f) / 2.0f, q10, q11, forceShortPath);
-  auto q21 = slerp(t / 2.0f, q11, q12, forceShortPath);
-  return slerp(t, q20, q21, forceShortPath);
+  auto q00 = q0.normalize();
+  auto q01 = q1.normalize();
+  auto q02 = q2.normalize();
+  auto q03 = q3.normalize();
+
+  if (forceShortPath && dot(q00, q01) < 0.0f) q01 = -q01;
+  if (forceShortPath && dot(q01, q02) < 0.0f) q02 = -q02;
+  if (forceShortPath && dot(q02, q03) < 0.0f) q03 = -q03;
+
+  auto q10 = slerp(t + 1.0f, q00, q01, false);
+  auto q11 = slerp(t, q01, q02, false);
+  auto q12 = slerp(t - 1.0f, q02, q03, false);
+  auto q20 = slerp((t + 1.0f) / 2.0f, q10, q11, false);
+  auto q21 = slerp(t / 2.0f, q11, q12, false);
+  return slerp(t, q20, q21, false);
 }
